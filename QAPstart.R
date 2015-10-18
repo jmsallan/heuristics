@@ -1,12 +1,14 @@
 #-----reading the Elshafei:77 file as an example---- 
 
-download.file(url="http://anjos.mgi.polymtl.ca/qaplib/data.d/els19.dat", "Elsh19.dat")
+file <- url("http://anjos.mgi.polymtl.ca/qaplib/data.d/els19.dat")
 
-data <- scan("Elsh19.dat")
+data <- scan(file)
+
+close(file)
 
 n <- data[1]
 
-flow <- matrix(data[2:(n*n + 1)], n, n)
+flow <- matrix(data[2:(n*n + 1)], n, n, byrow=TRUE)
 
 distance <- matrix(data[(n*n + 2):(2*n*n + 1)], n , n)
 
@@ -25,7 +27,7 @@ perMatrix <- function(vec){
   return(m)
 }
 
-objective <- function(flow, distance, permutation){
+objective.QAP <- function(flow, distance, permutation){
   pmatrix <- perMatrix(permutation)
   dist_perm <- pmatrix %*% distance %*% t(pmatrix)
   return(sum(flow * dist_perm))
@@ -33,6 +35,6 @@ objective <- function(flow, distance, permutation){
 
 #---------testing objective function------
 
-obj.value <- objective(flow, distance, optimum)
+obj.value <- objective.QAP(flow, distance, optimum)
 
 obj.value == value_optimum
