@@ -1,0 +1,221 @@
+---
+title: "QAP results"
+output: html_document
+---
+#Solving a set of QAP instances
+
+This is a report of the resolution of a sample of several quadratic assingment problem (QAP) instances  of [QAPLIB](http://www.opt.math.tu-graz.ac.at/qaplib/) through several algorithms. In particular we will solve here:
+
+* The C. Roucariol **rou** instances
+* The M. Scriabin and R.C. Vergin **scr** instances
+* The S.W. Hadley, F. Rendl and H. Wolkowicz **had** instances 
+
+To do so, we will use the functions in the **QAPfunctions.R** file to solve the QAP:
+
+````{r}
+source("QAPfunctions.R")
+````
+
+##Reading instances and optimal solutions
+
+Then we are ready to read the files using the `readQAPLIB` function. In all instances distance matrix is reported first, except in the **had** instances so we have to use the function with `swap=TRUE` for these instances. Finally all inputs are stored in:
+
+* A `data` list of 10 lists containing the flow and distance matrix of each instance
+* A `sample` vector containing the name of each instance
+
+`````{r}
+url.base <- "http://www.opt.math.tu-graz.ac.at/qaplib/data.d/"
+
+link <- function(x) paste0(url.base, x, ".dat")
+
+sample.med <- c("rou12", "rou15", "rou20", "scr12", "scr15", "scr20")
+link.med <- lapply(sample.med, link)
+data.med <- lapply(link.med, read.QAPLIB)
+names(data.med) <- sample.med
+
+sample.tfda <- c("had12", "had16", "had18", "had20")
+link.tfda <- lapply(sample.tfda, link)
+data.tfda <- lapply(link.tfda, function(x) read.QAPLIB(x, swap="TRUE"))
+names(data.tfda) <- sample.tfda
+
+data <- c(data.med, data.tfda)
+sample <- c(sample.med, sample.tfda)
+
+rm(data.med, data.tfda, sample.med, sample.tfda, link.med, link.tfda)
+````
+
+To assess the effectiveness of algorithms, the optimal solution and the optimal value of the objective function are read using the `readsol.QAPLIB` function:
+
+````{r}
+url.sol <- "http://www.opt.math.tu-graz.ac.at/qaplib/soln.d/"
+
+link.sol <- function(x) paste0(url.sol, x, ".sln")
+
+sol.link <- lapply(sample, link.sol)
+sol.opt <- lapply(sol.link, readsol.QAPLIB)
+names(sol.opt) <- sample
+`````
+
+##Solving the instances
+
+We will solve each instance using four methods:
+
+* A **constructive heuristic** for the QAP
+* A **simulated annealing** heuristic
+* A **tabu search heuristic**, based in the same neighborhood definition of the simulated annealing
+* A **genetic algorithm** with a one-point crossover operator and a swap mutation operator
+
+###Constructive heuristic
+
+The constructive heuristic for the QAP is implemented as follows:
+
+
+* We start assigning the highest flow value to shortest distance
+* For the remaining elements:
+    + The maximal flow from selected facility (Fa) to not selected (Fb) is obtained
+    + facility Fb is placed in the free location closest to Fa
+
+
+This heuristic is implemented in the `heuristic.QAP` function, which returns the solution and objective function obtained with this heuristic, and a `time` variable equal to zero, since the time execution is negligible. The output is a `sol.heuristic` a list of 10 list containing the results of applying the constructive heuristic for each of the 10 instances.
+
+
+````{r}
+solve.by.heuristic <- function(x){
+  flow <- x$flow
+  distance <- x$distance
+  sol.heuristic <- Heuristic.QAP(flow, distance)
+  return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=0))
+}
+
+sol.heuristic <- lapply(data, solve.by.heuristic)
+``````
+
+###Simulated annealing
+
+We proceed to solve each instance through a simulated annealing algorithm. Results are stored in a `sol.sa` list, now including the time of execution:
+
+````{r}
+solve.by.sa <- function(x){
+  flow <- x$flow
+  distance <- x$distance
+  
+  starting <- Heuristic.QAP(flow, distance)
+  
+  set.seed(1313)
+  time1 <- Sys.time()
+  sol.heuristic <- SimulatedAnnealing.QAP(flow, distance, 30000, starting$sol)
+  time2 <- Sys.time()
+  time <- time2 - time1
+  return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=time))
+  
+  return(sol.heuristic)
+}
+
+sol.sa <- lapply(data, solve.by.sa)
+`````
+
+###Tabu search
+
+The results of the tabu search are stored in the `sol.ts` list:
+
+````{r}
+solve.by.ts <- function(x){
+  flow <- x$flow
+  distance <- x$distance
+  
+  starting <- Heuristic.QAP(flow, distance)
+  
+  set.seed(1313)
+  time1 <- Sys.time()
+  sol.heuristic <- TabuSearch.QAP(flow, distance, iter=30000, sol=starting$sol)
+  time2 <- Sys.time()
+  time <- time2 - time1
+  return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=time))
+  
+  return(sol.heuristic)
+}
+
+sol.ts <- lapply(data, solve.by.ts)
+`````
+
+###Genetic algorithm
+
+And the results of the genetic algorithm are stored in a `sol.ga` list:
+
+````{r}
+solve.by.ga <- function(x){
+  flow <- x$flow
+  distance <- x$distance
+  
+  set.seed(1313)
+  time1 <- Sys.time()
+  sol.heuristic <- GeneticAlgorithm.QAP(flow, distance)
+  time2 <- Sys.time()
+  time <- time2 - time1
+  return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=time))
+  
+  return(sol.heuristic)
+}
+
+sol.ga <- lapply(data, solve.by.ga) 
+````
+
+##Displaying the results
+
+Now we need to list the results for each instance. for each of the four resolution procedures (constructive heuristic, simulated annealing, tabu search and genetic algorithm) and for the optimal solution we report:
+
+* The value of the objective functions
+* The value of the solution
+* The time of execution (zero for the constructive heuristic and for the optimum)
+* The normalized deviation from the optimum of the objective function (zero for the optimum)
+
+We will create a list of data frames called `results` with the above structure to report the results. First we define a `SolString` function which turns the solution of the QAP into a string:
+
+````{r}
+SolString <- function(sol){
+  text <- character(0)
+  for (i in 1:length(sol)) text <- paste(text, sol[i])
+  text <- substring(text, 2)
+  return(text)
+}
+````
+
+Then we build the list `results` defining each of the columns of the data frame:
+
+````{r}
+results <- list(0)
+
+n <- length(sample)
+
+for(i in 1:n){
+  results[[i]] <- data.frame(matrix(nrow=5, ncol=0))
+  
+  results[[i]]$obj <- c(sol.heuristic[[i]]$obj, sol.sa[[i]]$obj, sol.ts[[i]]$obj, sol.ga[[i]]$obj, sol.opt[[i]]$obj)
+  
+  results[[i]]$sol <- c(SolString(sol.heuristic[[i]]$sol), SolString(sol.sa[[i]]$sol), SolString(sol.ts[[i]]$sol), SolString(sol.ga[[i]]$sol), SolString(sol.opt[[i]]$sol))
+  
+  results[[i]]$time <- c(sol.heuristic[[i]]$time, sol.sa[[i]]$time, sol.ts[[i]]$time, sol.ga[[i]]$time, sol.opt[[i]]$time)
+  
+  results[[i]]$time <- round(results[[i]]$time, 2)
+  
+  for(j in 1:5){
+    results[[i]]$eff[j] <- (results[[i]]$obj[j] - results[[i]]$obj[5])/results[[i]]$obj[5]
+    results[[i]]$eff[j] <- round(results[[i]]$eff[j], 2)
+  }
+  rownames(results[[i]]) <- c(paste("Heuristic", sample[[i]]), paste("Sim. Annealing", sample[[i]]), paste("Tabu", sample[[i]]), paste("Genetic", sample[[i]]), paste("Optimal", sample[[i]]))
+}
+````
+
+Then we can print the results:
+
+````{r message=FALSE}
+library(stargazer)
+for(i in 1:length(sample)) stargazer(results[[i]], type="text", summary=FALSE)
+````
+
+
+
+##Conclusions
+
+As can be seen from the results, the most effective heuristics are tabu search and genetic algorithm. In all instances except **had20** tabu search beats simulated annealing, suggesting that perhaps for big instances genetic algorithm can have superior performance.
+

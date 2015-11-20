@@ -58,7 +58,7 @@ DistanceMatrixAtt <- function(data){
 data48 <- read.table(file="att48data.tsp", header=FALSE)
 colnames(data48) <- c("node", "xcoord", "ycoord")
 
-distance.att48 <- DistanceMatrixAtt(data48)
+distance.att48 <- DistanceMatrixAtt(data48) 
 
 #setting seed for (pseudo) random numbers
 

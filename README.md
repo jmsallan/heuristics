@@ -6,7 +6,8 @@ At this moment this repository contains the following material
 
 ## Quadratic assignment problem (QAP)
 
-**QAPstart.R** This is a .R file containing code to download an isntance of QAP from the QAPLIB files, and a function to assess the objective function of a QAP instance.
+* **QAPfunctions.R** contains several functions and algorithms to tackle the QAP using R, based on the ones defined for the TSP
+* **QAP_1516.R** displays how to solve a set of 10 QAP instances. The results are displayed in the **QAPresults.html** file, generated with the **QAPresults.Rmd* R markdown file
 
 ##Travelling Salesperson Problem (TSP)
 
