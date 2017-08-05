@@ -1,8 +1,8 @@
 ---
-title: "QAP results"
+title: "Solving a set of QAP instances"
 output: html_document
 ---
-#Solving a set of QAP instances
+#The instances
 
 This is a report of the resolution of a sample of several quadratic assingment problem (QAP) instances  of [QAPLIB](http://www.opt.math.tu-graz.ac.at/qaplib/) through several algorithms. In particular we will solve here:
 
@@ -10,7 +10,7 @@ This is a report of the resolution of a sample of several quadratic assingment p
 * The M. Scriabin and R.C. Vergin **scr** instances
 * The S.W. Hadley, F. Rendl and H. Wolkowicz **had** instances 
 
-To do so, we will use the functions in the **QAPfunctions.R** file to solve the QAP:
+To do so, we will use the implementations of several heuristics for the QAP in the file **QAPfunctions.R**.
 
 ````{r}
 source("QAPfunctions.R")
@@ -18,7 +18,7 @@ source("QAPfunctions.R")
 
 ##Reading instances and optimal solutions
 
-Then we are ready to read the files using the `readQAPLIB` function. In all instances distance matrix is reported first, except in the **had** instances so we have to use the function with `swap=TRUE` for these instances. Finally all inputs are stored in:
+Now we are ready to read the files using the `readQAPLIB` function. In all instances the distance matrix is reported first, except in the **had** instances so we have to use the function with `swap=TRUE` for these instances. All inputs are stored in:
 
 * A `data` list of 10 lists containing the flow and distance matrix of each instance
 * A `sample` vector containing the name of each instance
@@ -92,7 +92,7 @@ sol.heuristic <- lapply(data, solve.by.heuristic)
 
 ###Simulated annealing
 
-We proceed to solve each instance through a simulated annealing algorithm. Results are stored in a `sol.sa` list, now including the time of execution:
+We proceed to solve each instance through a simulated annealing algorithm, with `Tmax=30000` and `mu=300`, using the solution obtained with the heuristic as starting solution. Results are stored in a `sol.sa` list, now including the time of execution:
 
 ````{r}
 solve.by.sa <- function(x){
@@ -103,12 +103,10 @@ solve.by.sa <- function(x){
   
   set.seed(1313)
   time1 <- Sys.time()
-  sol.heuristic <- SimulatedAnnealing.QAP(flow, distance, 30000, starting$sol)
+  sol.heuristic <- SA(starting$sol, flow, distance, 30000, 3000)
   time2 <- Sys.time()
   time <- time2 - time1
   return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=time))
-  
-  return(sol.heuristic)
 }
 
 sol.sa <- lapply(data, solve.by.sa)
@@ -116,7 +114,7 @@ sol.sa <- lapply(data, solve.by.sa)
 
 ###Tabu search
 
-The results of the tabu search are stored in the `sol.ts` list:
+A tabu search heuristic is applied, taking the same starting solution as in the previous heuristic. Solutions are stored in the `sol.ts` list:
 
 ````{r}
 solve.by.ts <- function(x){
@@ -127,12 +125,10 @@ solve.by.ts <- function(x){
   
   set.seed(1313)
   time1 <- Sys.time()
-  sol.heuristic <- TabuSearch.QAP(flow, distance, iter=30000, sol=starting$sol)
+  sol.heuristic <- TS(starting$sol, flow, distance, iter=300)
   time2 <- Sys.time()
   time <- time2 - time1
   return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=time))
-  
-  return(sol.heuristic)
 }
 
 sol.ts <- lapply(data, solve.by.ts)
@@ -140,7 +136,7 @@ sol.ts <- lapply(data, solve.by.ts)
 
 ###Genetic algorithm
 
-And the results of the genetic algorithm are stored in a `sol.ga` list:
+Finally we apply a genetic algorithm, with a population of 200 and 1000 iterations. Results are stored in a `sol.ga` list:
 
 ````{r}
 solve.by.ga <- function(x){
@@ -149,12 +145,10 @@ solve.by.ga <- function(x){
   
   set.seed(1313)
   time1 <- Sys.time()
-  sol.heuristic <- GeneticAlgorithm.QAP(flow, distance)
+  sol.heuristic <- GA(flow, distance, 200, 100, 0.2)
   time2 <- Sys.time()
   time <- time2 - time1
   return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=time))
-  
-  return(sol.heuristic)
 }
 
 sol.ga <- lapply(data, solve.by.ga) 
@@ -162,7 +156,7 @@ sol.ga <- lapply(data, solve.by.ga)
 
 ##Displaying the results
 
-Now we need to list the results for each instance. for each of the four resolution procedures (constructive heuristic, simulated annealing, tabu search and genetic algorithm) and for the optimal solution we report:
+Now we will list the results for all instances for each of the heuristics (constructive heuristic, simulated annealing, tabu search and genetic algorithm) and for the optimal solution we report:
 
 * The value of the objective functions
 * The value of the solution
@@ -213,9 +207,13 @@ library(stargazer)
 for(i in 1:length(sample)) stargazer(results[[i]], type="text", summary=FALSE)
 ````
 
+...and save them into a `Rdata` file.
 
+```{r}
+save.image("QAPresults.RData")
+```
 
 ##Conclusions
 
-As can be seen from the results, the most effective heuristics are tabu search and genetic algorithm. In all instances except **had20** tabu search beats simulated annealing, suggesting that perhaps for big instances genetic algorithm can have superior performance.
+As can be seen from the results, the most effective heuristic is tabu search for all instances, followed by simulated annealing. A better tunning of simulated annealing may yield better results.
 

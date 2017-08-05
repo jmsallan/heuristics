@@ -1,5 +1,5 @@
 #-------defining objective function------- 
-#the components of the solution design the facility that goes in each location
+#the components of the solution design the location of each facility
 
 perMatrix <- function(vec){
   n <- length(vec)
@@ -10,10 +10,57 @@ perMatrix <- function(vec){
   return(m)
 }
 
-objective.QAP <- function(flow, distance, permutation){
+QAP <- function(flow, distance, permutation){
   pmatrix <- perMatrix(permutation)
   flow_perm <- pmatrix %*% flow %*% t(pmatrix)
   return(sum(flow_perm * distance))
+}
+
+
+#-----reading data from QAPLIB file-----
+#by default first matrix is flow, second matrix distance. In some QAPLIB instances is the opposite, then swap parameter must be turned to TRUE 
+
+read.QAPLIB <- function(link, swap=FALSE){
+  
+  file <- url(link, method="libcurl")
+  data <- scan(file)
+  close(file)
+  
+  n <- data[1]
+  
+  flow <- matrix(data[2:(n*n + 1)], n, n, byrow=TRUE)
+  
+  distance <- matrix(data[(n*n + 2):(2*n*n + 1)], n , n)
+  
+  if(swap==TRUE){
+    aux <- flow
+    flow <- distance
+    distance <- aux
+  }
+  
+  return(list(flow=flow, distance=distance))
+  
+}
+
+#----reading solution from QAPLIB-----
+
+readsol.QAPLIB <- function(link, perm=TRUE){
+  file <- url(link, method = "libcurl")
+  data <- scan(file)
+  close(file)
+  
+  n <- data[1]
+  obj <- data[2]
+  sol <- data[3:(n+2)]
+  
+  if(perm){
+      aux <- numeric(length(sol))
+      for(i in 1:length(sol)) aux[sol[i]] <- i
+      sol <- aux
+  }
+  
+  return(list(obj=obj, sol=sol, time=0))
+  
 }
 
 #--------defining constructive heuristic-------
@@ -22,7 +69,9 @@ objective.QAP <- function(flow, distance, permutation){
 #maximal flow from selected facility (Fa) to not selected (Fb) is detected
 #facility Fb is placed as close as possible to Fa 
 
-Heuristic.QAP <- function(flow, distance){
+Heuristic.QAP <- function(flow, distance0){
+  
+  distance <- distance0
   
   #setting flow and distance matrices as data frames
   
@@ -81,274 +130,320 @@ Heuristic.QAP <- function(flow, distance){
   
   for(i in 1:n) distance[i, i] <- 0
   
-  obj <- objective.QAP(flow, distance, sol)
+  obj <- QAP(flow, distance0, sol)
   
-  return(list(obj = obj, sol = sol, time = 0))
+  return(list(obj = obj, sol = sol))
 }
 
-#-----reading data from QAPLIB file-----
-#by default first matrix is flow, second matrix distance. In some QAPLIB instances is the opposite, then swap parameter must be turned to TRUE 
 
-read.QAPLIB <- function(link, swap=FALSE){
+#----swap of two elements (neighbourhood definiton)----
+
+swap <- function(v, i , j){
   
-  file <- url(link)
-  data <- scan(file)
-  close(file)
-  
-  n <- data[1]
-  
-  flow <- matrix(data[2:(n*n + 1)], n, n, byrow=TRUE)
-  
-  distance <- matrix(data[(n*n + 2):(2*n*n + 1)], n , n)
-  
-  if(swap==TRUE){
-    aux <- flow
-    flow <- distance
-    distance <- aux
+  n <- length(v)
+
+  if(i > j){
+    aux <- i
+    i <- j
+    j <- aux
   }
   
-  return(list(flow=flow, distance=distance))
-  
+  if((n >= j)&(i!=j)) {
+    aux <- v[i]
+    v[i] <- v[j]
+    v[j] <- aux
+    return(list(v=v, success=TRUE))
+  }    
+  else{
+    if(i==j & j <=n) return(list(v=v, success=TRUE))
+    if(n < j) return(success=FALSE)
+  }  
 }
 
-#----reading solution from QAPLIB-----
+#-----hill climbing----
 
-readsol.QAPLIB <- function(link){
-  file <- url(link)
-  data <- scan(file)
-  close(file)
+HillClimbing <- function(sini, flow, distance){
   
-  n <- data[1]
-  obj <- data[2]
-  sol <- data[3:(n+2)]
+  n <- length(sini)
+  sol <- sini
+  obj <- QAP(flow, distance, sol)
+  k <- TRUE
   
-  return(list(obj=obj, sol=sol, time=0))
+  while(k){
+    #obtaining the solution of minimum value of o.f. from neighbourhood
+    soltest <- numeric(n)
+    objtest <- Inf
+    
+    for(i in 1:(n-1)){
+      for(j in (i+1):n){
+        test <- QAP(flow, distance, swap(sol, i, j)$v)
+        if(test < objtest){
+          objtest <- test
+          soltest <- swap(sol, i, j)$v
+        }
+      }
+    }
+    
+    #comparing the obtained solution with the obtained in previous iteration
+    #loop breaks if there is no improvement
+    if(objtest < obj){
+      obj <- objtest
+      sol <- soltest
+    }
+    else
+      k <- FALSE
+  }
   
+  return(list(sol=sol, obj=obj))
 }
 
+#-----simulated annealing-----
 
+SA <- function(sini, flow, distance, Tmax, mu, report.evol=FALSE){
+  
+  n <- length(sini)
+  sol <- sini
+  obj <- QAP(flow, distance, sol)
+  
+  solbest <- sol
+  objbest <- obj
+  
+  evol <- numeric(Tmax)
+  
+  T <- Tmax
+  
+  while(T>=0){
+    move <- sample(1:n, 2)
+    soltest <- swap(sol, move[1], move[2])$v
+    objtest <- QAP(flow, distance, soltest)
+    
+    #print(soltest)
+    if(exp(-mu*(objtest-obj)/T) > runif(1)){
+      sol <- soltest
+      obj <- objtest
+    }
+    
+    if(obj < objbest){
+      solbest <- sol
+      objbest <- obj
+    }
+    
+    evol[Tmax-T] <- obj
+    T <- T-1
+  }
+  
+  if(report.evol)
+    return(list(sol=solbest, obj=objbest, evol=evol))
+  else
+    return(list(sol=solbest, obj=objbest))
+}
 
+#----Tabu search----
 
-#------Swap nodes operator (sane as in QAP)
+TS <- function(sini, flow, distance, iter, tabu.size=7, report.evol=FALSE){
+  
+  n <- length(sini)
+  sol <- sini
+  obj <- QAP(flow, distance, sol)
+  
+  evol <- numeric(iter)
+  
+  solbest <- sol
+  objbest <- obj
+  
+  k <- 1
+  
+  tabu.list <- matrix(numeric(tabu.size*2), tabu.size, 2)
+  
+  
+  while(k<=iter){
+    
+    #we need to find the best solution of the iteration
+    #if the aspiration condition is reached, tabu list will not be updated
+    move <- numeric(2)
+    objiter <- Inf
+    soliter <- numeric(n)
+    update.tabu <- FALSE
+    
+    #examining all moves to find best of iteration
+    for(i in 1:(n-1)){
+      for(j in (i+1):n){
+        #compute move solution and objective function
+        soltest <- swap(sol, i, j)$v
+        objtest <- QAP(flow, distance, soltest)
+        
+        #see if move is tabu
+        is.tabu <- FALSE
+        for(s in 1:tabu.size) if(tabu.list[s,1]==i & tabu.list[s,2]==j) is.tabu <- TRUE
+        
+        if(is.tabu){
+          #move is tabu
+          #aspiration condition: replace if better than best
+          if(objtest < objbest){
+            soliter <- soltest
+            objiter <- objtest
+            update.tabu <- FALSE
+          }
+        }
+        else{
+          #move is not tabu
+          #replace iter solution if better than iter
+          #tabu list has to be updated, save move
+          if(objtest < objiter){
+            soliter <- soltest
+            objiter <- objtest
+            update.tabu <- TRUE
+            move <- c(i,j)
+          }
+        }
+      }
+    }
+    
+    #update solution to explore
+    sol <- soliter
+    obj <- objiter
+    
+    #update best solution found
+    if(obj < objbest){
+      objbest <- obj
+      solbest <- sol
+    }
+    
+    #update tabu list
+    if(update.tabu){
+      for(s in tabu.size:2) tabu.list[s, ] <- tabu.list[s-1, ]
+      tabu.list[1, ] <- move
+    }
+    
+    evol[k] <- obj
+    k <- k+1
+    
+  }
+  
+  if(report.evol)
+    return(list(sol=solbest, obj=objbest, evol=evol))
+  else
+    return(list(sol=solbest, obj=objbest))
+}
 
-SwapNeighbourNodes <- function(sol, k){
-  n <- length(sol)
-  swap <- sol
-  if(k == n){
-    swap[1] <- sol[n]
-    swap[n] <- sol[1]
+#-----Genetic Algorithm for the TSP------
+
+#function that calculates the value of objective function for each element of the population, and also returns the probability distribution for selection
+obj <- function(flow, distance, population){
+  npop <- length(population)
+  fitness <- sapply(population, function(x) QAP(flow, distance, x))
+  
+  max.fitness <- max(fitness)
+  min.fitness <- min(fitness)
+  
+  if(max.fitness==min.fitness){
+    prob <- rep(1/npop, npop)
   }
   else{
-    swap[k] <- sol[k+1]
-    swap[k+1] <- sol[k]
+    prob <- (max.fitness - fitness + min.fitness)^2
+    sum.prob <- sum(prob)
+    prob <- prob/sum.prob  
   }
+  
+  return(list(fitness=fitness, prob=prob))
+}
+
+
+#function that performs the 1-point crossover operator
+crossoverTSP1point <- function(sol1, sol2){
+  n <- length(sol1)
+  son <- numeric(n)
+  point <- sample(1:n, 1)
+  
+  son <- c(sol1[1:point], sol2[!(sol2 %in% sol1[1:point])])
+  
+  return(son)
+  
+}
+
+#function that performs a 2-points swap mutation operator (same as SwapNodes)
+mutationTSP2nodes <- function(sol){
+  
+  n <- length(sol)
+  points <- sort(sample(1:n, 2))
+  i <- points[1]
+  j <- points[2]
+  
+  swap <- sol
+  swap[i] <- sol[j]
+  swap[j] <- sol[i]
+  
+  if(i==1 & j!=1){
+    swap <- swap[c(j:n, 1:(j-1))]
+  }
+  
   return(swap)
 }
 
-#--------Simmulated annealing heuristic-------
-
-SimulatedAnnealing.QAP <- function(flow, distance, tmax, sol){
+GA <- function(flow, distance, npop, iterations, pmut, report.evol=FALSE, verbose=FALSE){
   
-  #finding problem size
-  n <- dim(flow)[1]
+  #problem size  
+  n <- dim(distance)[1]
   
-  sol.best <- sol
-  obj <- objective.QAP(flow, distance, sol)
-  obj.best <- obj
-  
-  #tmax number of iterations
-  count <- tmax
-  
-  repeat{
-    #select a random move
-    pos <- sample(1:n, 1)
-    
-    #finding new solution and total distance
-    sol.test <- SwapNeighbourNodes(sol, pos)
-    obj.test <- objective.QAP(flow, distance, sol)
-    
-    if(exp(-(obj.test - obj)/count) > runif(1)){
-      sol <- sol.test
-      obj <- obj.test
-    }
-    
-    if(obj < obj.best){
-      obj.best <- obj
-      sol.best <- sol
-    }
-    
-    count <- count - 1
-    if(count <= 0) break
-  }
-  
-  return(list(obj = obj.best, sol = sol.best))
-  
-}
-
-#----tabu search heuristic---- 
-
-TabuSearch.QAP <- function(flow, distance, iter=100, tabu.size = 7, sol){
-  
-  #finding problem size
-  n <- dim(flow)[1]
-  
-  sol.best <- sol
-  obj <- objective.QAP(flow, distance, sol)
-  obj.best <- obj
-  
-  #tmax number of iterations
-  count <- iter
-  
-  tabu.list <- numeric(tabu.size)
-  
-  repeat{
-    #testing all random nodes
-    
-    move <- numeric()
-    obj.iter <- Inf
-    sol.iter <- numeric(n)
-    
-    for(i in 1:n){
-      if(sum(i == tabu.list) == 0){
-        sol.test <- SwapNeighbourNodes(sol, i)
-        obj.test <- objective.QAP(flow, distance, sol.test)
-      }
-      if(obj.test < obj.iter){
-        sol.iter <- sol.test
-        obj.iter <- obj.test
-        move <- i
-      }
-    }    
-    
-    #update solution and tabu list
-    
-    sol <- sol.iter
-    obj <- obj.iter
-    
-    for(i in tabu.size:2)
-      tabu.list[i] <- tabu.list[i-1]
-    
-    tabu.list[1] <- move
-    
-    if(obj < obj.best){
-      obj.best <- obj
-      sol.best <- sol
-    }        
-    
-    count <- count - 1
-    if(count <= 0) break
-  }
-  
-  return(list(obj = obj.best, sol = sol.best))
-  
-}
-
-#------Genetic algorithm heuristic------
-
-GeneticAlgorithm.QAP <- function(flow, distance, npop=100, iterations=1000, pmut=0.8){
-  
-  n <- dim(flow)[1]
+  #evolution of best fit
+  evol <- numeric(iterations)
   
   #initial population
+  population.parent <- replicate(npop, sample(1:n), simplify=FALSE)
   
-  population.father <- replicate(npop, sample(1:n,size=n), simplify=FALSE)
+  #initializing next generation
+  population.son <- replicate(npop, numeric(n), simplify=FALSE)
   
-  population.mother <- replicate(npop, numeric(n), simplify=FALSE)
+  best.obj <- Inf
+  best.sol <- numeric(n)
   
-  sol.best <- numeric(n)
-  obj.best <- Inf
+  count <- 1
   
-  fitness <- c(numeric(), npop)
-  fitness.acum <- c(numeric(), npop)
-  
-  iter <- 0
-  
-  repeat{
+  while(count <= iterations){
     
-    #computing relative fitness for selection
+    #assess fitness of population parent
+    fitness <- obj(flow, distance, population.parent)
+    iter.obj <- min(fitness$fitness)
+    pos.min <- which(fitness$fitness == min(fitness$fitness))[1]
+    iter.sol <- population.parent[[pos.min]]
+    #print(iter.sol)
     
-    for(i in 1:npop)
-      fitness[i] <- objective.QAP(flow, distance, population.father[[i]])
+    #elitist strategy: replace worst solution by best solution so far
+    pos.max <- which(fitness$fitness == max(fitness$fitness))[1]
+    population.son[[pos.max]] <- best.sol
     
-    if(min(fitness) < obj.best){
-      obj.best <- min(fitness)
-      sol.best <- population.father[[which.min(fitness)]]
-      
+    #update best solution
+    if(iter.obj < best.obj){
+      best.sol <- iter.sol
+      best.obj <- iter.obj
     }
     
-    max.fitness <- max(fitness)
-    
-    fitness <- max.fitness - fitness
-    
-    fitness.acum[i] <- fitness[i]
-    
-    for(i in 2:npop)
-      fitness.acum[i] <- fitness.acum[i-1] + fitness[i]
-    
-    fitness.acum <- fitness.acum/max(fitness.acum)
-    
-    for(k in 1:npop){
-      #selecting father and mother
-      r <- runif(1)
-      father <- 0
-      
-      repeat{
-        father <- father + 1
-        if(fitness.acum[father] > r | father >= n) break
-      }
-      
-      repeat{
-        s <- runif(1)
-        mother <-0
-        repeat{
-          mother <- mother + 1
-          if(fitness.acum[mother] > s | mother >= n) break
-        }
-        if(father!=mother) break
-      }
-      
-      #crossover operator for father and son
-      
-      crossover.point <- sample(1:n, 1)
-      
-      c1 <- population.father[[father]][1:crossover.point]
-      
-      flag <- logical(n)
-      
-      for(i in 1:n){
-        for(j in 1:crossover.point)
-          if(population.father[[mother]][i] == c1[j])
-            flag[i] = TRUE
-      }
-      
-      c2 <- population.father[[mother]][which(!flag)]
-      
-      population.mother[[k]] <- c(c1, c2)
-      
-      #mutation operator
-      
-      if(runif(1) < pmut){
-        swap <- sample(1:n, 2)
-        aux <- population.mother[[k]][swap[1]]
-        population.mother[[k]][swap[1]] <- population.mother[[k]][swap[2]]
-        population.mother[[k]][swap[2]] <- aux
-        
-      }
+    #creating son population
+    for(i in 1:npop){
+      #crossover
+      parents <- sample(1:npop, 2, prob = fitness$prob)
+      v1 <- population.parent[[parents[1]]]
+      v2 <- population.parent[[parents[2]]]
+      population.son[[i]] <- crossoverTSP1point(v1, v2)
+      #mutation
+      if(pmut > runif(1)) population.son[[i]] <- mutationTSP2nodes(population.son[[i]])
     }
     
-    population.father <- population.mother
     
-    iter <- iter + 1
-    if(iter >= iterations) break
+    #population son becomes parent
+    population.parent <- population.son
+    
+    evol[count] <- best.obj
+    count <- count + 1
   }
   
-  for(i in 1:npop)
-    fitness[i] <- objective.QAP(flow, distance, population.father[[i]])
+  if(verbose) print(c(pmut, npop))
   
-  if(min(fitness) < obj.best){
-    obj.best <- min(fitness)
-    sol.best <- population.father[[which.min(fitness)]]
-  }
+  if(report.evol)
+    return(list(sol=best.sol, obj=best.obj, evol=evol))
+  else
+    return(list(sol=best.sol, obj=best.obj))
   
-  return(list(sol = sol.best, obj = obj.best))
 }
+
+

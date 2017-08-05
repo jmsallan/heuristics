@@ -8,20 +8,9 @@ url.base <- "http://www.opt.math.tu-graz.ac.at/qaplib/data.d/"
 
 link <- function(x) paste0(url.base, x, ".dat")
 
-sample.med <- c("rou12", "rou15", "rou20", "scr12", "scr15", "scr20")
-link.med <- lapply(sample.med, link)
-data.med <- lapply(link.med, read.QAPLIB)
-names(data.med) <- sample.med
-
-sample.tfda <- c("had12", "had16", "had18", "had20")
-link.tfda <- lapply(sample.tfda, link)
-data.tfda <- lapply(link.tfda, function(x) read.QAPLIB(x, swap="TRUE"))
-names(data.tfda) <- sample.tfda
-
-data <- c(data.med, data.tfda)
-sample <- c(sample.med, sample.tfda)
-
-rm(data.med, data.tfda, sample.med, sample.tfda, link.med, link.tfda)
+sample <- c("bur26a", "bur26b", "bur26c", "bur26d", "bur26e", "bur26f", "bur26g", "bur26h")
+link.sample <- lapply(sample, link)
+data <- lapply(link.sample, function(x) read.QAPLIB(x, swap="TRUE"))
 
 #----reading optimal solutions------
 
@@ -31,7 +20,6 @@ link.sol <- function(x) paste0(url.sol, x, ".sln")
 
 sol.link <- lapply(sample, link.sol)
 sol.opt <- lapply(sol.link, readsol.QAPLIB)
-names(sol.opt) <- sample
 
 #-----solving by constructive heuristic-----
 
@@ -43,7 +31,6 @@ solve.by.heuristic <- function(x){
 }
 
 sol.heuristic <- lapply(data, solve.by.heuristic)
-names(sol.heuristic) <- sample
 
 #-----solve by simulated annealing-----
 
@@ -55,16 +42,13 @@ solve.by.sa <- function(x){
   
   set.seed(1313)
   time1 <- Sys.time()
-  sol.heuristic <- SimulatedAnnealing.QAP(flow, distance, 30000, starting$sol)
+  sol.annealing <- SA(starting$sol, flow, distance, 30000, 3000)
   time2 <- Sys.time()
   time <- time2 - time1
-  return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=time))
-  
-  return(sol.heuristic)
+  return(list(obj = sol.annealing$obj, sol=sol.annealing$sol, time=time))
 }
 
 sol.sa <- lapply(data, solve.by.sa)
-names(sol.sa) <- sample
 
 #-----solve by tabu search----
 
@@ -76,16 +60,13 @@ solve.by.ts <- function(x){
   
   set.seed(1313)
   time1 <- Sys.time()
-  sol.heuristic <- TabuSearch.QAP(flow, distance, iter=30000, sol=starting$sol)
+  sol.tabu <- TS(starting$sol, flow, distance, iter=300)
   time2 <- Sys.time()
   time <- time2 - time1
-  return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=time))
-  
-  return(sol.heuristic)
+  return(list(obj = sol.tabu$obj, sol=sol.tabu$sol, time=time))
 }
 
 sol.ts <- lapply(data, solve.by.ts)
-names(sol.ts) <- sample
 
 #------solve by genetic algorithm-----
 
@@ -95,16 +76,14 @@ solve.by.ga <- function(x){
   
   set.seed(1313)
   time1 <- Sys.time()
-  sol.heuristic <- GeneticAlgorithm.QAP(flow, distance)
+  sol.genetic <- GA(flow, distance, 300, 200, 0.2)
   time2 <- Sys.time()
   time <- time2 - time1
-  return(list(obj = sol.heuristic$obj, sol=sol.heuristic$sol, time=time))
-  
-  return(sol.heuristic)
+  return(list(obj = sol.genetic$obj, sol=sol.genetic$sol, time=time))
 }
 
 sol.ga <- lapply(data, solve.by.ga) 
-names(sol.ga) <- sample
+
 
 #-----turning solution (permutation) into string-----
 
@@ -115,24 +94,11 @@ SolString <- function(sol){
   return(text)
 }
 
-for(i in 1:10){
-  sol.opt[[i]]$sols <- SolString(sol.opt[[i]]$sol)
-  sol.heuristic[[i]]$sols <- SolString(sol.heuristic[[i]]$sol)
-  sol.sa[[i]]$sols <- SolString(sol.sa[[i]]$sol)  
-  sol.ts[[i]]$sols <- SolString(sol.ts[[i]]$sol)
-  sol.ga[[i]]$sols <- SolString(sol.ga[[i]]$sol) 
-  
-  sol.opt[[i]]$eff <- 0
-  sol.heuristic[[i]]$eff <- (sol.heuristic[[i]]$obj - sol.opt[[i]]$obj)/sol.opt[[i]]$obj
-  sol.sa[[i]]$eff <- (sol.sa[[i]]$obj - sol.opt[[i]]$obj)/sol.opt[[i]]$obj
-  sol.ts[[i]]$eff <- (sol.ts[[i]]$obj - sol.opt[[i]]$obj)/sol.opt[[i]]$obj
-  sol.ga[[i]]$eff <- (sol.ga[[i]]$obj - sol.opt[[i]]$obj)/sol.opt[[i]]$obj
-  
-}
-
-results <- list(0)
+#----presenting the results---- 
 
 n <- length(sample)
+
+results <- list(0)
 
 for(i in 1:n){
   results[[i]] <- data.frame(matrix(nrow=5, ncol=0))
@@ -152,12 +118,13 @@ for(i in 1:n){
   rownames(results[[i]]) <- c(paste("Heuristic", sample[[i]]), paste("Sim. Annealing", sample[[i]]), paste("Tabu", sample[[i]]), paste("Genetic", sample[[i]]), paste("Optimal", sample[[i]]))
 }
 
-
 library(stargazer)
+for(i in 1:length(sample)) stargazer(results[[i]], type="text", summary=FALSE)
 
-sink("resultsQAP.tex", append=FALSE, split=FALSE)
-for(i in 1:10) stargazer(results[[i]], summary=FALSE, dep.var.caption=paste("Results for", sample[i]))
+sink("QAPtypewriter.txt")
+for(i in 1:length(sample)) stargazer(results[[i]], summary=FALSE)
 sink()
-save.image("QAPresults.RData")
-load("QAPresults.Rdata")
+
+save.image("QAPresultsTypewriters.RData")
+load("QAPresultsTypewriters.Rdata")
 
