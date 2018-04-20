@@ -55,15 +55,15 @@ DistanceMatrixAtt <- function(data){
 
 #----TSP instance generation from a set of points----
 
-SampleTSP <- function(size, seed=1111){
+SampleTSP <- function(size, seed=1111, euc=TRUE){
   set.seed(seed)
   points <- matrix(sample(0:100, size*2, replace = TRUE), size, 2)
   points <- as.data.frame(points)
-  d <- Distancia(points)
+  d <- Distancia(points, euc)
   return(d)
 }
 
-#----Funcio objectiu----
+#----Objective function----
 
 TSP <- function(D, sol){
   
@@ -303,10 +303,52 @@ TS <- function(sini, D, iter, tabu.size=7, report.evol=FALSE){
   }
   
   if(report.evol)
-      return(list(sol=solbest, dist=distbest, evol=evol))
+      return(list(sol=solbest, obj=distbest, evol=evol))
   else
-      return(list(sol=solbest, dist=distbest))
+      return(list(sol=solbest, obj=distbest))
 }
+
+#----A GRASP constructive heuristic for the TSP based on nearest neighbour heuristic----
+
+GRASP <- function(d, s, start=1){
+  
+  n <- dim(d)[1]
+  
+  #test if d is a square matrix
+  #test if start <= n
+  
+  for(i in 1:n)
+    d[i, i] <- Inf
+  
+  #flag checks if node has been included in solution
+  #sol is the solution starting from start
+  
+  flag <- logical(n)
+  sol <- integer(n)
+  
+  sol[1] <- start
+  flag[start] <- TRUE
+  
+  for(i in 1:(n-1)){
+    
+    row <- d[sol[i], ]
+    pos <- which(flag==FALSE)
+    list <- pos[order(row[pos], decreasing = FALSE)]
+    sizelist <- min(s, n-sum(flag))
+    
+    rank <- sample(1:sizelist, 1)
+    j <- list[rank]
+    sol[i+1] <- j
+    flag[j] <- TRUE
+    
+  }
+  
+  distance <- TSP(d, sol)
+  return(list(sol=sol, obj=distance))
+  
+}
+
+#---- combining GRASP constructive heuristic with TS ----
 
 #-----Genetic Algorithm for the TSP------
 

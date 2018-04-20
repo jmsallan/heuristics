@@ -1,5 +1,4 @@
-setwd("~/Dropbox (UPC)/quanti_docs/TSP")
-source("functionsTSP.R")
+source("code/functionsTSP.R")
 
 #-----Creating an instance of size 20 for testing----
 
@@ -21,7 +20,7 @@ ga.instance <- GA(instance, npop=100, iterations=100, pmut=0.2, report.evol = TR
 
 #----Plotting the results----
 
-pdf("instanceTSP01.pdf", width=10, height=15)
+pdf("results/instanceTSP01.pdf", width=10, height=15)
 par(mfrow=c(3,1))
 
 plot(1:19000, sa.instance$evol, type="n", xlab="iter", ylab="dist", ylim = c(350, 1400), main="evolution of simulated annealing")
@@ -37,7 +36,7 @@ dev.off()
 
 #----Loading matrix of att48 instance----
 
-data48 <- read.table(file="att48data.tsp", header=FALSE)
+data48 <- read.table(file="instances/att48data.tsp", header=FALSE)
 colnames(data48) <- c("node", "xcoord", "ycoord")
 
 att48 <- DistanceMatrixAtt(data48)

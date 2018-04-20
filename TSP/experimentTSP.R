@@ -1,5 +1,5 @@
 load("experimentTSP.RData")
-source("functionsTSP.R")
+source("code/functionsTSP.R")
 
 #----generating instances----
 
@@ -27,22 +27,19 @@ z.sa <- unlist(res.sa[(1:(length(mu)*runs.sa))*2])
 data.sa <- data.frame(z.sa, mu, rep(sizes, length(mu)/length(sizes)), rep(1:20, length(mu)/length(sizes)))
 names(data.sa) <- c("z", "mu", "size", "inst")
 
-#----data display----
-#intro to dplyr package: https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html
+#----results display----
+#intro to dplyr package: https://dplyr.tidyverse.org/
 
 library(dplyr)
 
 mean.sa <- data.sa %>% group_by(inst, mu) %>% summarise(mean=mean(z), max=max(z), min=min(z), sd=sd(z))
 names(mean.sa) <- c("inst", "mu", "mean", "max", "min", "sd")
 
-#intro to reshape2: http://seananderson.ca/2013/10/19/reshape.html
+#intro to tidyr: http://tidyr.tidyverse.org/
 
-library(reshape2)
+library(tidyr)
 
-mean.table <- dcast(mean.sa, inst ~ mu, value.var = c("mean"))
-mean.table <- cbind(sizes, mean.table, z.ts)
-names(mean.table)  <- c("size", "inst", "mu=100", "mu=500", "mu=1000", "tabu")
-
+mean.table <- mean.sa %>% select(inst, mu, mean) %>% spread(mu, mean)
 print(mean.table, digits=5)
 
-save.image("experimentTSP.RData")
+save.image("results/experimentTSP.RData")

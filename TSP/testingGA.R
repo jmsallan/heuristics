@@ -1,12 +1,10 @@
 load("testGA.RData")
 
-setwd("~/Dropbox (UPC)/quanti_docs/TSP")
-
-source("functionsTSP.R")
+source("code/functionsTSP.R")
 
 #----reading att48-----
 
-data48 <- read.table(file="att48data.tsp", header=FALSE)
+data48 <- read.table(file="instances/att48data.tsp", header=FALSE)
 colnames(data48) <- c("node", "xcoord", "ycoord")
 
 distance.att48 <- DistanceMatrixAtt(data48)
@@ -16,7 +14,7 @@ distance.att48 <- DistanceMatrixAtt(data48)
 iter <- 1000
 ga.test <- GA(distance.att48, 50, iter, 0.2, report.evol=TRUE)
 
-pdf("plotGA.pdf", width=7, height=5)
+pdf("results/plotGA.pdf", width=7, height=5)
 plot(1:iter, ga.test$evol, type="n", xlab="iter", ylab="dist", main="assessing iterations for the GA")
 lines(1:iter, ga.test$evol, col="blue")
 dev.off()
@@ -61,6 +59,6 @@ z.results <- z.table %>% group_by(npop, pmut) %>% summarise(mean=mean(z), max=ma
 
 z.results
 
-save.image("testGA.Rdata")
+save.image("results/testGA.Rdata")
 
 
