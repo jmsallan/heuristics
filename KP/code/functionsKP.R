@@ -1,4 +1,4 @@
-#----Generator of KP instances----
+#----Generators of KP instances----
 
 KPInstance01 <- function(R, size, h, seed=1212){
     set.seed(1212)
@@ -15,6 +15,172 @@ SubsetSumInstance01 <- function(R, size, h, seed=1212){
     W <- round(h/(101)*sum(w))
     return(list(w=w,u=w,W=W))
 }
+
+EasyInstance <- function(size, h){
+  w <- sample(50:80, size, replace = TRUE)
+  u <- sample(100:160, size, replace = TRUE)
+  W <- round(h*sum(w))
+  
+  return(list(u=u, w=w, W=W))
+}
+
+#-----Relative utility heuristic----
+
+HeuristicKP  <- function(Instance){
+  
+  solution <- rep(FALSE, length(Instance$u))
+  RelUtil <- Instance$u/Instance$w
+  OrderRelUtil <- order(RelUtil, decreasing = TRUE)
+  
+  Wleft <- Instance$W
+  
+  for(i in 1:length(Instance$u)){
+    
+    pos <- OrderRelUtil[i]
+    if(Wleft >= Instance$w[pos]){
+      solution[pos] <- TRUE
+      Wleft <- Wleft - Instance$w[pos]
+    }
+  }
+  
+  fit <- FitnessKP(Instance, solution)
+  
+  return(list(sol=solution, fit=fit))
+}
+
+#---- simulated annealing for the KP ----
+
+SAKP <- function(Inst, inisol, Tmax=1000, mu=1, eval=FALSE){
+  
+  sol <- inisol
+  bestsol <- inisol
+  
+  if(eval){
+    evalfit <- numeric(Tmax)
+    evalbest <- numeric(Tmax)
+    evaltest <- numeric(Tmax)
+  }
+  
+  fit <- FitnessKP(Inst, sol)
+  bestfit <- FitnessKP(Inst, bestsol)
+  
+  T <- Tmax
+  
+  while (T > 0) {
+    
+    testsol <- sol
+    pos <- sample(1:length(Inst$u), 1)
+    testsol[pos] <- !testsol[pos]
+    testfit <- FitnessKP(Inst, testsol)
+    
+    if(testfit >= fit){
+      
+      sol <- testsol
+      fit <- testfit
+      
+      if(testfit >= bestfit){
+        bestsol <- testsol
+        bestfit <- testfit
+      } 
+      
+    }else{
+      if(exp(-mu*(fit-testfit)) > runif(1)){
+        sol <- testsol
+        fit <- testfit
+      }
+    }
+    
+    if(eval){
+      evalfit[Tmax - T + 1] <- fit
+      evalbest[Tmax - T + 1] <- bestfit
+      evaltest[Tmax - T + 1] <- testfit
+    }
+    
+    T <- T - 1
+  }
+  if(eval)
+    return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest, evaltest=evaltest))
+  else
+    return(list(sol=bestsol, fit=bestfit))
+}
+
+#----tabu search for KP----
+
+TSKP <- function(Inst, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE){
+  
+  #tracking evaluation
+  if(eval){
+    evalfit <- numeric(iter)
+    evalbest <- numeric(iter)
+    move <- numeric(iter)
+  }
+  
+  #initialization
+  sol <- inisol
+  bestsol <- inisol
+  fit <- FitnessKP(Inst, sol)
+  bestfit <- fit
+  T <- 1
+  Ttabu <- 1
+  flag.tabu <- FALSE
+  tabu.list <- numeric(tabu.size)
+  
+  n <- length(Inst$w)
+  
+  while (T<=iter){
+    
+    #find the best move
+    fit <- -1
+    ibest <- 0
+    for(i in 1:n){
+      
+      testsol <- sol
+      testsol[i] <- !testsol[i] #bit flip operator
+      testfit <- FitnessKP(Inst, testsol)
+      
+      if(testfit >= bestfit & sum(tabu.list==i)==1 & asp){
+        ibest <- i
+        fit <- testfit
+        flag.tabu <- TRUE
+      }
+      
+      if(testfit >= fit & sum(tabu.list==i)==0){
+        ibest <- i
+        fit <- testfit
+        flag.tabu <- FALSE
+      }
+    }
+    
+    #update sol and bestsol
+    sol[ibest] <- !sol[ibest]
+    if(fit >= bestfit){
+      bestsol <- sol
+      bestfit <- fit
+    }
+    
+    #update tabu list
+    
+    if(!flag.tabu){
+      Ttabu <- Ttabu + 1
+      tabu.list[Ttabu%%tabu.size+1] <- ibest
+    }
+    
+    if(eval){
+      evalfit[T] <- fit
+      evalbest[T] <- bestfit
+      move[T] <- ibest
+    }
+    
+    T <- T+1
+  }
+  
+  if(eval)
+    return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest, move=move))
+  else
+    return(list(sol=bestsol, fit=bestfit))
+}
+
+
 
 #-----A genetic algorithm for the KP----
 

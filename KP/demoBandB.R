@@ -1,6 +1,8 @@
-setwd("~/Dropbox (UPC)/quanti_docs/KP")
+# set working directory!
 
-source("functionsKP.R")
+source("code/functionsKP.R")
+
+#-----Testing branch and bound-----
 
 easy <- list(w=c(30, 45, 15, 40, 35, 5), u=c(24, 108, 30, 100, 80.5, 3), W=100)
 hard <- list(w=c(30, 45, 15, 70, 35, 5), u=c(24, 108, 30, 175, 80.5, 3), W=100)
@@ -22,7 +24,6 @@ bandb.KP100.report <- BandBKP(InstanceKP100, TRUE)
 LP.KP10 <- LPKP(InstanceKP10)
 LP.KP50 <- LPKP(InstanceKP50)
 LP.KP100 <- LPKP(InstanceKP100)
-
 
 identical(bandb.KP100$sol, LP.KP100$sol)
 identical(bandb.KP50$sol, LP.KP50$sol)
