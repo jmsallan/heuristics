@@ -158,3 +158,47 @@ shiftmove <- function(sol, i, j){
   return(sol)
 }
 
+
+#-----NEH heuristic-----
+
+NEH <- function(Instance){
+  
+  m <- dim(Instance)[1]
+  n <- dim(Instance)[2]
+  
+  tasks <- order(apply(Instance, 2, sum), decreasing = TRUE)
+  
+  print(tasks)
+  
+  sol <- tasks[1]
+  
+  if(makespan(Instance, c(tasks[1:2])) < makespan(Instance, c(tasks[2:1])))
+    sol <- tasks[1:2]
+  else
+    sol <- tasks[2:1]
+  
+  print(sol)
+  
+  for(i in 3:n){
+    best <- Inf
+    pos <- -1
+    
+    for(j in 1:(i-1)){
+      if(j==1) test <- c(tasks[i], sol)
+      if(j==(i-1)) test <- c(sol, tasks[i])
+      if(j!=1 & j!=(i-1)) test <- c(sol[1:j], tasks[i], sol[(j+1):(i-1)])
+      
+      if(makespan(Instance, test) < best){
+        best <- makespan(Instance, test)
+        pos <- j
+      }
+    }
+    
+    if(pos==1) sol <- c(tasks[i], sol)
+    if(pos==(i-1)) sol <- c(sol, tasks[i])
+    if(pos!=1 & pos!=(i-1)) sol <- c(sol[1:j], tasks[i], sol[(j+1):(i-1)])
+    print(sol)
+  }
+  
+  return(sol)
+}
