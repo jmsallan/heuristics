@@ -48,6 +48,46 @@ load("instances/TaillardFS.RData")
 GA02 <- GAFS(tai20.5[[1]]$tij, npop=10, iter=1000, pmut=1, verbose = TRUE)
 
 
+#----NEH heuristic----
+
+NEH <- function(Instance){
+  
+  m <- dim(Instance)[1]
+  n <- dim(Instance)[2]
+  
+  tasks <- order(apply(Instance, 2, sum))
+  
+  sol <- tasks[1]
+  
+  for(i in 2:(n-1)){
+    
+    best <- Inf
+    pos <- -1
+    
+    for(j in 0:(i-1)){
+      
+      test <- c(sol[0:j], tasks[i], sol[(j+1):i])
+      if (makespan(Instance, test) < best){
+        pos <- j
+        best <- makespan(Instance, test)
+      }
+      
+      if(makespan(Instance, c(sol, task[i])) < best){
+        pos <- i
+        best <- makespan(Instance, c(sol, task[i])) 
+      }
+      
+      if(pos < i)
+        sol <- c(sol[0:pos], task[i], sol[(pos+1):i])
+      else
+        sol <- c(sol, task[i])
+    }
+  }
+  return(sol)
+}
+
+
+
 #----shift move----
 
 test <- 1:5

@@ -1,9 +1,11 @@
+#----NEH heuristic---
+
 #----makespan of the flowshop problem----
 
 makespan <- function(M, sol){
   
   m <- dim(M)[1]
-  n <- dim(M)[2]
+  n <- length(sol)
   
   times <- matrix(numeric(m*n), m, n)
   
