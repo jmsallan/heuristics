@@ -161,32 +161,30 @@ shiftmove <- function(sol, i, j){
 
 #-----NEH heuristic-----
 
-NEH <- function(Instance){
+NEH <- function(Instance, verbose=FALSE){
   
   m <- dim(Instance)[1]
   n <- dim(Instance)[2]
   
   tasks <- order(apply(Instance, 2, sum), decreasing = TRUE)
   
-  print(tasks)
-  
-  sol <- tasks[1]
+  if(verbose) cat("ordered tasks:",tasks, "\n")
   
   if(makespan(Instance, c(tasks[1:2])) < makespan(Instance, c(tasks[2:1])))
     sol <- tasks[1:2]
   else
     sol <- tasks[2:1]
   
-  print(sol)
+  if(verbose) cat("starting:", sol, "\n")
   
   for(i in 3:n){
     best <- Inf
     pos <- -1
     
-    for(j in 1:(i-1)){
+    for(j in 1:i){
       if(j==1) test <- c(tasks[i], sol)
-      if(j==(i-1)) test <- c(sol, tasks[i])
-      if(j!=1 & j!=(i-1)) test <- c(sol[1:j], tasks[i], sol[(j+1):(i-1)])
+      if(j==i) test <- c(sol, tasks[i])
+      if(j!=1 & j!=i) test <- c(sol[1:(j-1)], tasks[i], sol[j:(i-1)])
       
       if(makespan(Instance, test) < best){
         best <- makespan(Instance, test)
@@ -195,10 +193,135 @@ NEH <- function(Instance){
     }
     
     if(pos==1) sol <- c(tasks[i], sol)
-    if(pos==(i-1)) sol <- c(sol, tasks[i])
-    if(pos!=1 & pos!=(i-1)) sol <- c(sol[1:j], tasks[i], sol[(j+1):(i-1)])
-    print(sol)
+    if(pos==i) sol <- c(sol, tasks[i])
+    if(pos!=1 & pos!=i) sol <- c(sol[1:(pos-1)], tasks[i], sol[pos:(i-1)])
+    
+    if(verbose) cat("position:", pos, "\n")
+    if(verbose) cat("solution:", sol, "\n")
   }
   
+  fit <- makespan(Instance, sol)
+  
+  return(list(sol=sol, fit=fit))
+}
+
+#---- tabu search ----
+
+#shift operator (Murata)
+shift4move <- function(sol, i, j){
+  
+  aux <- sol[i]  
+  
+  if(i < j)
+    sol[i:(j-1)] <- sol[(i+1):j]
+  else
+    sol[(j+1):i] <- sol[j:(i-1)]
+    
+  sol[j] <- aux
+    
   return(sol)
 }
+
+
+TSTSP2opt <- function(Instance, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE){
+  
+  #tracking evaluation
+  if(eval){
+    evalfit <- numeric(iter)
+    evalbest <- numeric(iter)
+    evalgain <- numeric(iter)
+  }
+  
+  #initialization
+  sol <- inisol
+  bestsol <- inisol
+  fit <- makespan(Instance, sol)
+  bestfit <- fit
+  T <- 1
+  Ttabu <- 1
+  flag.tabu <- FALSE
+  tabu.list <- matrix(numeric(2*tabu.size), tabu.size, 2)
+  
+  n <- dim(sol)
+  
+  #generating list of moves
+  
+  moves <- matrix(numeric(2*(n-1)^2), (n-1)^2, 2)
+  k <- 1
+  for(i in 1:n){
+    for(j in 1:n){
+      if(i!=j & (i+1)!=j){
+        moves[k, ] <- c(i,j)
+        k <- k+1
+      } 
+    }
+  }
+  
+  while (T<=iter){
+    
+    #find the best move
+    fit <- Inf
+    bestmove <- c(0,0)
+    
+    for(k in 1:dim(moves)[1]){
+      
+      testsol <- shift4move(sol, move[k,1], move[k,2])
+      testfit <- makespan(Instance, testsol)
+      
+      if(testfit < fit & )
+      
+      
+    }
+    
+    for(i in 1:(n-2)){
+      for(k in (i+1):min(n+i-3,n-1)){
+        if(i==1)
+          testgain <- D[sol[n], sol[k]] +  D[sol[i], sol[k+1]] - D[sol[n] ,sol[i]] - D[sol[k], sol[k+1]]
+        else
+          testgain <- D[sol[i-1], sol[k]] +  D[sol[i], sol[k+1]] - D[sol[i-1] ,sol[i]] - D[sol[k], sol[k+1]]
+        
+        if(testgain < gain & sum(c(i, k) %in% tabu.list)==0){
+          gain <- testgain
+          bestmove <- c(i, k)
+          flag.tabu <- TRUE
+        }
+        
+        if(fit + testgain <= bestfit & sum(c(i, k) %in% tabu.list)==2 & asp){
+          gain <- testgain
+          bestmove <- c(i, k)
+          flag.tabu <- FALSE
+        }
+      }
+    }
+    
+    #update sol and bestsol
+    sol <- move2opt(sol, bestmove[1], bestmove[2])
+    fit <- fit + gain
+    if(fit <= bestfit){
+      bestsol <- sol
+      bestfit <- fit
+    }
+    
+    #update tabu list
+    
+    if(flag.tabu){
+      Ttabu <- Ttabu + 1
+      tabu.list[Ttabu%%tabu.size+1, ] <- bestmove
+    }
+    
+    if(eval){
+      evalfit[T] <- fit
+      evalbest[T] <- bestfit
+      evalgain[T] <- gain
+    }
+    
+    T <- T+1
+  }
+  
+  if(eval)
+    return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest, evalgain=evalgain))
+  else
+    return(list(sol=bestsol, fit=bestfit))
+}
+
+

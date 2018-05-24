@@ -122,6 +122,10 @@ HillClimbing2opt <- function(D, sini, verbose=FALSE){
 
 #---- tabu search based on 2opt -----
 
+
+
+
+
 TSTSP2opt <- function(D, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE){
   
   #tracking evaluation

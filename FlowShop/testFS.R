@@ -59,12 +59,5 @@ Instance.NEH <- matrix(c(
 
 NEH(Instance.NEH)
 
-NEH(tai20.5[[1]]$tij)
+NEH02 <- NEH(tai20.5[[1]]$tij, verbose = TRUE)
 
-#----shift move----
-
-test <- 1:5
-for(i in 1:5)
-  for(j in 1:5)
-    if (i!=j) {print(c(i,j))
-      print(shiftmove(test, i, j))}
