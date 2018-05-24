@@ -50,25 +50,20 @@ shift <- function(sol){
   points <- sample(1:n,2)
   i <- points[1]
   j <- points[2]
-  
-  if(i < j){
+
+  aux <- sol[i]
     
-    aux <- sol[i]
+  if(i < j)    
     sol[i:(j-1)] <- sol[(i+1):j]
-    sol[j] <- aux
-    
-  }else{
-    
-    aux <- sol[i]
-    sol[(j+1):i] <- sol[j:(i-1)]
-    sol[j] <- aux
-    
-  }
+  else
+   sol[(j+1):i] <- sol[j:(i-1)]
+
+  sol[j] <- aux
   
   return(sol)
 }
 
-GAFS <- function(problem, npop=10, iter=100, pmut=0.8, elitist=TRUE, verbose=FALSE){
+GAFS <- function(problem, npop=10, iter=100, pmut=0.8, elitist=TRUE, alpha=0, verbose=FALSE){
   
   m <- dim(problem)[1]
   n <- dim(problem)[2]
@@ -97,7 +92,7 @@ GAFS <- function(problem, npop=10, iter=100, pmut=0.8, elitist=TRUE, verbose=FAL
     
     #compute probabilities of selection
     maxfit <- max(fit)
-    probs <- (maxfit - fit)^2
+    probs <- ((1+alpha)*maxfit - fit)^2
     probs <- probs/sum(probs)
     
     if(verbose) print(probs)
@@ -161,50 +156,52 @@ shiftmove <- function(sol, i, j){
 
 #-----NEH heuristic-----
 
-NEH <- function(Instance, verbose=FALSE){
+NEH <- function(Instance){
   
-  m <- dim(Instance)[1]
   n <- dim(Instance)[2]
   
-  tasks <- order(apply(Instance, 2, sum), decreasing = TRUE)
-  
-  if(verbose) cat("ordered tasks:",tasks, "\n")
-  
-  if(makespan(Instance, c(tasks[1:2])) < makespan(Instance, c(tasks[2:1])))
-    sol <- tasks[1:2]
+  jobs <- order(apply(Instance, 2, sum), decreasing = TRUE)
+  print(jobs)
+  if( makespan(Instance, c(jobs[1], jobs[2])) < makespan(Instance, c(jobs[2], jobs[1])) )
+    sol <- c(jobs[1], jobs[2])
   else
-    sol <- tasks[2:1]
+    sol <-c(jobs[2], jobs[1])
   
-  if(verbose) cat("starting:", sol, "\n")
+  print(sol)
   
-  for(i in 3:n){
-    best <- Inf
+  for(k in 3:n){
+    
+    fit <- Inf
     pos <- -1
     
-    for(j in 1:i){
-      if(j==1) test <- c(tasks[i], sol)
-      if(j==i) test <- c(sol, tasks[i])
-      if(j!=1 & j!=i) test <- c(sol[1:(j-1)], tasks[i], sol[j:(i-1)])
+    for(i in 1:k){
+      if(i==1) test <- c(jobs[k], sol)
+      if(i!= 1 & i!=k) test <- c(sol[1:(i-1)], jobs[k], sol[i:(k-1)])
+      if(i==k) test <- c(sol, jobs[k])
       
-      if(makespan(Instance, test) < best){
-        best <- makespan(Instance, test)
-        pos <- j
+      testfit <- makespan(Instance, test)
+      
+      if(testfit < fit){
+        fit <- testfit
+        pos <- i
       }
+      
     }
     
-    if(pos==1) sol <- c(tasks[i], sol)
-    if(pos==i) sol <- c(sol, tasks[i])
-    if(pos!=1 & pos!=i) sol <- c(sol[1:(pos-1)], tasks[i], sol[pos:(i-1)])
+    if(pos==1) sol <- c(jobs[k], sol)
+    if(pos!= 1 & pos!=k) sol <- c(sol[1:(pos-1)], jobs[k], sol[pos:(k-1)])
+    if(pos==k) sol <- c(sol, jobs[k])
     
-    if(verbose) cat("position:", pos, "\n")
-    if(verbose) cat("solution:", sol, "\n")
+    print(pos)
+    print(sol)
   }
   
   fit <- makespan(Instance, sol)
   
   return(list(sol=sol, fit=fit))
+  
+  
 }
-
 #---- tabu search ----
 
 #shift operator (Murata)

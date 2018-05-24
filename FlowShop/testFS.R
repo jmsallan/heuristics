@@ -45,7 +45,9 @@ GA01 <- GAFS(Instance, npop=10, iter=1000, pmut=1, verbose = TRUE)
 
 load("instances/TaillardFS.RData")
 
-GA02 <- GAFS(tai20.5[[1]]$tij, npop=10, iter=1000, pmut=1, verbose = TRUE)
+GA02 <- GAFS(tai20.5[[1]]$tij, npop=10, iter=1000, pmut=0, alpha=0.1, verbose = TRUE)
+
+GA03 <- GAFS(tai20.5[[1]]$tij, npop=10, iter=1000, pmut=1, verbose = TRUE)
 
 
 #----NEH heuristic----
@@ -60,6 +62,10 @@ Instance.NEH <- matrix(c(
 NEH(Instance.NEH)
 
 NEH02 <- NEH(tai20.5[[1]]$tij, verbose = TRUE)
+
+matrices.tai205 <- lapply(tai20.5, function(x) x$tij)
+NEH.tai205 <- lapply(matrices.tai205, NEH)
+NEHfit.tai205 <- sapply(NEH.tai205, function(x)x$fit)
 
 #--- tabu search ----
 
