@@ -61,3 +61,12 @@ NEH(Instance.NEH)
 
 NEH02 <- NEH(tai20.5[[1]]$tij, verbose = TRUE)
 
+#--- tabu search ----
+
+TS01 <- TSFS(Instance, 1:20, eval = TRUE)
+TS02 <- TSFS(tai20.5[[1]]$tij, 1:20, eval = TRUE)
+TS03 <- TSFS(tai20.5[[1]]$tij, NEH02$sol, eval = TRUE)
+
+TS04 <- TSFS2(Instance, 1:20, eval = TRUE)
+TS05 <- TSFS(tai20.5[[1]]$tij, 1:20, eval = TRUE)
+TS06 <- TSFS(tai20.5[[1]]$tij, NEH02$sol, eval = TRUE)

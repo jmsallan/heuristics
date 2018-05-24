@@ -223,39 +223,137 @@ shift4move <- function(sol, i, j){
 }
 
 
-TSTSP2opt <- function(Instance, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE){
+TSFS <- function(Instance, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE){
   
   #tracking evaluation
   if(eval){
     evalfit <- numeric(iter)
     evalbest <- numeric(iter)
-    evalgain <- numeric(iter)
   }
   
   #initialization
   sol <- inisol
   bestsol <- inisol
-  fit <- makespan(Instance, sol)
-  bestfit <- fit
+  bestfit <- makespan(Instance, sol)
+  
   T <- 1
   Ttabu <- 1
   flag.tabu <- FALSE
   tabu.list <- matrix(numeric(2*tabu.size), tabu.size, 2)
   
-  n <- dim(sol)
+  n <- length(sol)
   
   #generating list of moves
   
   moves <- matrix(numeric(2*(n-1)^2), (n-1)^2, 2)
   k <- 1
-  for(i in 1:n){
-    for(j in 1:n){
+  for(i in 1:n)
+    for(j in 1:n)
       if(i!=j & (i+1)!=j){
         moves[k, ] <- c(i,j)
         k <- k+1
       } 
+  
+    
+  while (T<=iter){
+    
+    #find the best move
+    fit <- Inf
+    bestmove <- c(0,0)
+    
+    for(k in 1:dim(moves)[1]){
+      
+      testsol <- shift4move(sol, moves[k,1], moves[k,2])
+      testfit <- makespan(Instance, testsol)
+      
+      if(testfit <= fit & sum(moves[k, ]%in% tabu.list)==0){
+        fit <- testfit
+        bestmove <- moves[k, ]
+        flag.tabu <- TRUE
+        }
+      
+      if(testfit < bestfit & sum(moves[k, ]%in% tabu.list)==2 & asp){
+        fit <- testfit
+        bestmove <- moves[k, ]
+        flag.tabu <- FALSE
+      }
     }
+    
+    print(bestmove)
+    print(fit)
+    
+    #update sol
+    sol <- shift4move(sol, bestmove[1], bestmove[2])
+    print(sol)
+    
+    #update bestsol
+    
+    if(fit <= bestfit){
+      bestfit <- fit
+      bestsol <- sol
+      
+    }
+    
+    #update tabu list
+    if(flag.tabu){
+      tabu.list[Ttabu%%tabu.size+1, ] <- bestmove
+      Ttabu <- Ttabu + 1
+    }
+    
+    if(eval){
+      evalfit[T] <- fit
+      evalbest[T] <- bestfit
+    }
+    
+    T <- T+1
   }
+  
+  if(eval)
+    return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest))
+  else
+    return(list(sol=bestsol, fit=bestfit))
+}
+
+swap4move <- function(sol, i, j){
+  
+  aux <- sol[i]
+  sol[i] <- sol[j]
+  sol[j] <- aux
+  
+  return(sol)
+  
+}
+
+TSFS2 <- function(Instance, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE){
+  
+  #tracking evaluation
+  if(eval){
+    evalfit <- numeric(iter)
+    evalbest <- numeric(iter)
+  }
+  
+  #initialization
+  sol <- inisol
+  bestsol <- inisol
+  bestfit <- makespan(Instance, sol)
+  
+  T <- 1
+  Ttabu <- 1
+  flag.tabu <- FALSE
+  tabu.list <- matrix(numeric(2*tabu.size), tabu.size, 2)
+  
+  n <- length(sol)
+  
+  #generating list of moves
+  
+  moves <- matrix(numeric(n*(n-1)), n*(n-1)/2, 2)
+  k <- 1
+  for(i in 1:(n-1))
+    for(j in (i+1):n){
+        moves[k, ] <- c(i,j)
+        k <- k+1
+    }
+  
   
   while (T<=iter){
     
@@ -265,63 +363,54 @@ TSTSP2opt <- function(Instance, inisol, iter=100, tabu.size=5, eval=FALSE, asp=T
     
     for(k in 1:dim(moves)[1]){
       
-      testsol <- shift4move(sol, move[k,1], move[k,2])
+      testsol <- swap4move(sol, moves[k,1], moves[k,2])
       testfit <- makespan(Instance, testsol)
       
-      if(testfit < fit & )
+      if(testfit <= fit & sum(moves[k, ]%in% tabu.list)==0){
+        fit <- testfit
+        bestmove <- moves[k, ]
+        flag.tabu <- TRUE
+      }
       
-      
-    }
-    
-    for(i in 1:(n-2)){
-      for(k in (i+1):min(n+i-3,n-1)){
-        if(i==1)
-          testgain <- D[sol[n], sol[k]] +  D[sol[i], sol[k+1]] - D[sol[n] ,sol[i]] - D[sol[k], sol[k+1]]
-        else
-          testgain <- D[sol[i-1], sol[k]] +  D[sol[i], sol[k+1]] - D[sol[i-1] ,sol[i]] - D[sol[k], sol[k+1]]
-        
-        if(testgain < gain & sum(c(i, k) %in% tabu.list)==0){
-          gain <- testgain
-          bestmove <- c(i, k)
-          flag.tabu <- TRUE
-        }
-        
-        if(fit + testgain <= bestfit & sum(c(i, k) %in% tabu.list)==2 & asp){
-          gain <- testgain
-          bestmove <- c(i, k)
-          flag.tabu <- FALSE
-        }
+      if(testfit < bestfit & sum(moves[k, ]%in% tabu.list)==2 & asp){
+        fit <- testfit
+        bestmove <- moves[k, ]
+        flag.tabu <- FALSE
       }
     }
     
-    #update sol and bestsol
-    sol <- move2opt(sol, bestmove[1], bestmove[2])
-    fit <- fit + gain
+    print(bestmove)
+    print(fit)
+    
+    #update sol
+    sol <- shift4move(sol, bestmove[1], bestmove[2])
+    print(sol)
+    
+    #update bestsol
+    
     if(fit <= bestfit){
-      bestsol <- sol
       bestfit <- fit
+      bestsol <- sol
+      
     }
     
     #update tabu list
-    
     if(flag.tabu){
-      Ttabu <- Ttabu + 1
       tabu.list[Ttabu%%tabu.size+1, ] <- bestmove
+      Ttabu <- Ttabu + 1
     }
     
     if(eval){
       evalfit[T] <- fit
       evalbest[T] <- bestfit
-      evalgain[T] <- gain
     }
     
     T <- T+1
   }
   
   if(eval)
-    return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest, evalgain=evalgain))
+    return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest))
   else
     return(list(sol=bestsol, fit=bestfit))
 }
-
 
