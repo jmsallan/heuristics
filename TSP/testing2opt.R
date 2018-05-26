@@ -110,3 +110,9 @@ GRASP02 <- GRASP2opt(TestSample, rcl.size = 2, ls="SA", tries = 10)
 
 GRASP01$report
 GRASP02$report
+
+#---- testing ILS ----
+
+sol <- 1:30
+ILS01 <- ILSTSTSP2opt(TestSample, sol)
+

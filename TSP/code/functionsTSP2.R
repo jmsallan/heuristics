@@ -122,10 +122,6 @@ HillClimbing2opt <- function(D, sini, verbose=FALSE){
 
 #---- tabu search based on 2opt -----
 
-
-
-
-
 TSTSP2opt <- function(D, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE){
   
   #tracking evaluation
@@ -408,4 +404,72 @@ GRASP2opt <- function(D, rcl.size, tries, start=1, ls="TS"){
   
   return(list(sol=bestsol, fit=bestfit, report=report))
 }
- 
+
+#---- iterated local search ----
+
+n <- 30
+
+ILSTSTSP2opt <- function(D, inisol, rounds=10, iter=100, tabu.size=5, eval=TRUE){
+  
+  #tracking evaluation
+  if(eval){
+    evalfit <- numeric(rounds)
+    evalbest <- numeric(rounds)
+  }
+  
+  
+  n <- length(inisol)
+  sol <- inisol
+  
+  tabu <- TSTSP2opt(D, inisol, iter=iter, tabu.size = tabu.size)
+  
+  sol <- tabu$sol
+  fit <- tabu$fit
+  
+  bestsol <- tabu$sol
+  bestfit <- tabu$fit
+  
+  
+  for(count.rounds in 1:rounds){
+    
+    #perturbated solution: 4-opt move
+    
+    #select cutoff points
+    points.notright <- TRUE
+    while(points.notright){
+      cp <- sort(sample(2:n, 4))
+      diffs <- numeric(3)
+      for(i in 1:3) diffs[i] <- cp[i+1] - cp[i]
+      points.notright <- sum(c(0,1) %in% diffs)
+    }
+    
+    sol.pert <- sol <- c(sol[1:(cp[1]-1)], sol[cp[3]:(cp[4]-1)], sol[cp[2]:(cp[3]-1)], sol[cp[1]:(cp[2]-1)], sol[cp[4]:n])
+    
+    tabu <- TSTSP2opt(D, sol.pert, iter=iter, tabu.size = tabu.size)
+    
+    #acceptance criterion
+    if(tabu$fit <= fit){
+      sol <- tabu$sol
+      fit <- tabu$fit
+    }
+    
+    if(tabu$fit <= bestfit){
+      bestsol <- tabu$sol
+      bestfit <- tabu$fit
+    }
+    
+    #tracking evaluation
+    if(eval){
+      evalfit[count.rounds] <- fit
+      evalbest[count.rounds] <- bestfit
+    }
+    
+    
+    
+  }
+  if(eval)
+    return(list(sol=sol, fit=bestfit, evalfit=evalfit, evalbest=evalbest))
+  else
+  return(list(sol=sol, fit=bestfit)) 
+}  
+
