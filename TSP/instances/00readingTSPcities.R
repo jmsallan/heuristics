@@ -1,7 +1,8 @@
 # http://www.math.uwaterloo.ca/tsp/world/countries.html
 # http://www.math.uwaterloo.ca/tsp/world/
 
-setwd("~/Dropbox (UPC)/001-Docencia/COL1617q2/Sallan/data")
+#setwd on data folder!
+
 
 download.TSP <- function(sample){
   url.base <- "http://www.math.uwaterloo.ca/tsp/world/"
@@ -35,3 +36,6 @@ download.TSP("ch71009")
 download.TSP("ei8246")
 download.TSP("it16862")
 download.TSP("kz9976")
+
+#http://elib.zib.de/pub/mp-testdata/tsp/tsplib/tsp/
+

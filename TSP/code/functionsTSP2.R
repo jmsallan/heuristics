@@ -372,7 +372,7 @@ GRASP <- function(D, rcl.size, start=1){
   
 }
 
-GRASP2opt <- function(D, rcl.size, tries, start=1, ls="TS"){
+GRASP2opt <- function(D, rcl.size, tries, start=1, iter=50, ls="TS"){
   
   n <- dim(D)[1]
   
@@ -386,9 +386,9 @@ GRASP2opt <- function(D, rcl.size, tries, start=1, ls="TS"){
     initial.solution <- GRASP(D, rcl.size)
     
     if(ls=="TS")
-        refined.solution <- TSTSP2opt(D, initial.solution$sol, iter=10*n)
+        refined.solution <- TSTSP2opt(D, initial.solution$sol, iter=iter)
       else
-        refined.solution <- SATSP2opt(D, initial.solution$sol, Tmax=n*100)
+        refined.solution <- SATSP2opt(D, initial.solution$sol, Tmax=n*(n-3)*50)
     
     if(refined.solution$fit <= bestfit){
       bestfit <- refined.solution$fit
