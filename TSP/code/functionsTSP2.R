@@ -468,8 +468,32 @@ ILSTSTSP2opt <- function(D, inisol, rounds=10, iter=100, tabu.size=5, eval=TRUE)
     
   }
   if(eval)
-    return(list(sol=sol, fit=bestfit, evalfit=evalfit, evalbest=evalbest))
+    return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest))
   else
-  return(list(sol=sol, fit=bestfit)) 
+  return(list(sol=bestsol, fit=bestfit)) 
 }  
 
+#----plotting a solution of TSP----
+
+plotTSP <- function(coord, sol){
+  
+  #defining coordinates of segments
+  
+  n <- length(sol)
+  
+  lines <- data.frame(matrix(numeric(4*n), n, 4))
+  print(lines)
+  colnames(lines) <- c("x1", "y1", "x2", "y2")
+  
+  for(i in 1:(n-1))
+    lines[i, ] <- c(coord[sol[i], ], coord[sol[i+1], ])
+
+  lines[n, ] <- c(coord[sol[n], ], coord[sol[1], ])
+  
+  print(lines)
+  colnames(lines) <- c("x1", "y1", "x2", "y2")
+  
+  plot(coord[, 1] , coord[, 2], xlab="", ylab="", xaxt="n", yaxt="n", pch=19)
+  segments(lines$x1, lines$y1, lines$x2, lines$y2)  
+
+  }
