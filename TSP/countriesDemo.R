@@ -8,7 +8,7 @@ load("results/TSPcities.Rdata")
 
 library(netgen)
 
-#att48. optimal tour has length 10628
+#----att48. optimal tour has length 10628----
 
 att48 <- importFromTSPlibFormat("instances/att48.tsp")
 Datt48 <- att48$distance.matrix
@@ -59,7 +59,7 @@ plotTSP(att48$coordinates, ILS01att48$sol)
 dev.off()
 
 
-#a280. optimum 2579
+#----a280. optimum 2579----
 
 a280 <- importFromTSPlibFormat("instances/a280.tsp")
 Da280 <- a280$distance.matrix
@@ -88,6 +88,13 @@ lines(1:30, ILS01a280$evalbest, col="blue")
 set.seed(1111)
 GRASP01a280 <- GRASP2opt(Da280, rcl.size = 2, tries=30, iter=40)
 
+opta280 <- getOptTour("instances/a280.opt.tour")
+
+pdf("results/patha280.pdf", width=10, height=5)
+par(mfrow=c(1,2))
+plotTSP(a280$coordinates, ILS01a280$sol)
+plotTSP(a280$coordinates, opta280)
+dev.off()
 
 
 save.image("results/TSPcities.Rdata")

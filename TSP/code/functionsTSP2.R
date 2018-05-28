@@ -482,7 +482,6 @@ plotTSP <- function(coord, sol){
   n <- length(sol)
   
   lines <- data.frame(matrix(numeric(4*n), n, 4))
-  print(lines)
   colnames(lines) <- c("x1", "y1", "x2", "y2")
   
   for(i in 1:(n-1))
@@ -490,10 +489,25 @@ plotTSP <- function(coord, sol){
 
   lines[n, ] <- c(coord[sol[n], ], coord[sol[1], ])
   
-  print(lines)
   colnames(lines) <- c("x1", "y1", "x2", "y2")
   
   plot(coord[, 1] , coord[, 2], xlab="", ylab="", xaxt="n", yaxt="n", pch=19)
   segments(lines$x1, lines$y1, lines$x2, lines$y2)  
 
-  }
+}
+
+#----gettin optimal tour from TSPLIB instances----
+
+getOptTour <- function(file){
+  
+  opttour <- readLines(file)
+  n <- as.numeric(strsplit(opttour[3], " ")[[1]][3])
+  
+  tour <- numeric(n)
+  
+  for(i in 1:n) tour[i] <- opttour[i+4]
+  
+  tour <- as.numeric(tour)
+  
+  return(tour)
+}
