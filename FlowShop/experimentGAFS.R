@@ -37,10 +37,30 @@ experimentFS <- function(Instance, npopValues, pmutValues, crOXValues, runs){
 
 load("instances/TaillardFS.RData")
 
-results <- experimentFS(tai100.5[[1]]$tij, npopValues = c(10, 20, 50), pmutValues = c(0.4, 0.8, 1), crOXValues = c(TRUE, FALSE), runs = 5)
+results <- experimentFS(tai100.5[[1]]$tij, npopValues = c(10, 20, 50), pmutValues = c(0.4, 0.8, 1), crOXValues = c(TRUE, FALSE), runs = 10)
 
 #saving the results on RDS
 
 saveRDS(results, "results/GAtai100_5_1.rds")
 
 #---- extracting results ----
+
+library(dplyr)
+
+TableResults <- tbl_df(results$results)
+
+TableResults %>% group_by(npop, pmut, `OX cross`) %>% summarise(max=max(makespan), mean=mean(makespan), min=min(makespan))
+
+TableResults %>% group_by(npop) %>% summarise(max=max(makespan), mean=mean(makespan), min=min(makespan))
+TableResults %>% group_by(pmut) %>% summarise(max=max(makespan), mean=mean(makespan), min=min(makespan))
+TableResults %>% group_by(`OX cross`) %>% summarise(max=max(makespan), mean=mean(makespan), min=min(makespan))
+
+
+library(ggplot2)
+
+ggplot(TableResults, aes(factor(`OX cross`), makespan)) + geom_boxplot() 
+ggplot(TableResults, aes(factor(pmut), makespan)) + geom_boxplot() 
+ggplot(TableResults, aes(factor(npop), makespan)) + geom_boxplot() 
+
+mod <- lm(makespan ~ npop + pmut + `OX cross`, data=TableResults)
+

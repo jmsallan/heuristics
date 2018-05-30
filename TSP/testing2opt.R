@@ -116,3 +116,10 @@ GRASP02$report
 sol <- 1:30
 ILS01 <- ILSTSTSP2opt(TestSample, sol)
 
+#---- testing GA ----
+
+GA01.TestSample <- GATSP(TestSample, npop=100, iter = 500, pmut = 1)
+GA02.TestSample <- GATSP(TestSample, npop=100, crOX=FALSE, iter = 500, pmut = 1)
+GA03.TestSample <- GATSP(TestSample, npop=100, crOX=FALSE, iter = 100, pmut = 1, memetic = TRUE, verbose=TRUE, alpha=0.1)
+
+

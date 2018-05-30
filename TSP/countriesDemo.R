@@ -96,5 +96,31 @@ plotTSP(a280$coordinates, ILS01a280$sol)
 plotTSP(a280$coordinates, opta280)
 dev.off()
 
+#-----qatar: optimal 9352 ----
+
+qa <- importFromTSPlibFormat("instances/qa194.tsp")
+Dqa <- qa$distance.matrix
+
+#nearest neighbour
+NNqa <- NearestNeighbour(Dqa)
+
+#nearest neighbour
+NNa280 <- NearestNeighbour(Da280)
+
+#tabu search
+TS01qa <- TSTSP2opt(Dqa, NNqa$sol, iter=40, tabu.size = 5, eval = TRUE)
+
+#simulated annealing
+set.seed(1313)
+SA01qa <- SATSP2opt(Dqa, NNqa$sol, Tmax=310000, mu=1, eval = FALSE)
+
+#ILS
+set.seed(1313)
+ILS01qa <- ILSTSTSP2opt(Dqa, NNqa$sol, rounds=30, iter=40)
+ILS02qa <- ILSTSTSP2opt(Dqa, 1:280, rounds=30, iter=40)
+
+set.seed(1111)
+GRASP01qa <- GRASP2opt(Dqa, rcl.size = 2, tries=30, iter=40)
+
 
 save.image("results/TSPcities.Rdata")

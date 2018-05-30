@@ -636,11 +636,14 @@ plotTSP <- function(coord, sol){
 getOptTour <- function(file){
   
   opttour <- readLines(file)
-  n <- as.numeric(strsplit(opttour[3], " ")[[1]][3])
+  
+  k <- which()
+  
+  n <- as.numeric(strsplit(opttour[4], " ")[[1]][3])
   
   tour <- numeric(n)
   
-  for(i in 1:n) tour[i] <- opttour[i+4]
+  for(i in 1:n) tour[i] <- opttour[i+5]
   
   tour <- as.numeric(tour)
   
