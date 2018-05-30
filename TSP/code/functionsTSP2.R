@@ -6,7 +6,7 @@ SampleTSP <- function(size, seed=1111, euc=TRUE){
   points <- matrix(sample(0:100, size*2, replace = TRUE), size, 2)
   d <- dist(points, upper = TRUE)
   d <- as.matrix(d)
-  return(d)
+  return(list(distances=d, coordinates=points))
 }
 
 #----Objective function----
@@ -407,8 +407,6 @@ GRASP2opt <- function(D, rcl.size, tries, start=1, iter=50, ls="TS"){
 
 #---- iterated local search ----
 
-n <- 30
-
 ILSTSTSP2opt <- function(D, inisol, rounds=10, iter=100, tabu.size=5, eval=TRUE){
   
   #tracking evaluation
@@ -463,15 +461,152 @@ ILSTSTSP2opt <- function(D, inisol, rounds=10, iter=100, tabu.size=5, eval=TRUE)
       evalfit[count.rounds] <- fit
       evalbest[count.rounds] <- bestfit
     }
-    
-    
-    
+
   }
   if(eval)
     return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest))
   else
   return(list(sol=bestsol, fit=bestfit)) 
 }  
+
+#----genetic algorithm for the TSP
+
+GATSP <- function(Instance, npop=10, iter=100, crOX=TRUE, pmut=0.8, memetic=FALSE, elitist=TRUE, alpha=0, verbose=FALSE){
+  
+  n <- dim(Instance)[1]
+  
+  #setting moves for 2-opt
+  num.moves <- n*(n-3)/2
+  moves <- matrix(numeric(num.moves*2), num.moves, 2)
+  count <- 1
+  for(i in 1:(n-2)){
+    for(k in (i+1):min(n+i-3,n-1)){
+      moves[count, ] <- c(i, k)
+      count <- count+1
+    }
+  }
+  
+  
+  bestfit <- Inf
+  bestsol <- numeric(n)
+  
+  #initializing generation G and sons S
+  G <- matrix(numeric(n*npop), npop, n)
+  S <- matrix(numeric(n*npop), npop, n)
+  for(i in 1:npop) G[i, ] <- sample(1:n, n)
+  
+  #compute objective function of G
+  fit <- apply(G, 1, function(x) TSP(Instance, x))
+  
+  #update best solution
+  testfit <- min(fit)
+  if(testfit <= bestfit){
+    bestfit <- testfit
+    bestsol <- G[which(fit==testfit)[1], ]
+  }
+  
+  T <- 1
+  
+  while(T <= iter){
+    
+    #compute probabilities of selection
+    maxfit <- max(fit)
+    probs <- ((1+alpha)*maxfit - fit)^2
+    probs <- probs/sum(probs)
+    
+    if(verbose) print(probs)
+    
+    for(i in 1: npop){
+      
+      select <- sample(1:npop, 2, prob=probs)
+      
+      if(crOX)
+        S[i, ] <- crossoverOX(G[select[1], ], G[select[2], ])
+      else
+        S[i, ] <- crossover2pointI(G[select[1], ], G[select[2], ])
+      
+      if(memetic)
+        S[i, ] <- HillClimbing2opt(Instance, S[i, ])$sol
+      else{
+        if(pmut > runif(1)){
+          mv <- sample(1:num.moves, 1)
+          S[i, ] <- move2opt(S[i, ], moves[mv, 1], moves[mv, 2])
+        }
+      }
+    }
+    
+    if (elitist) S[sample(1:npop,1), ] <- bestsol
+    
+    G <- S
+    
+    #compute distances of G
+    fit <- apply(G, 1, function(x) TSP(Instance, x))
+    testfit <- min(fit)
+    
+    #update best solution
+    if(testfit <= bestfit){
+      bestfit <- testfit
+      bestsol <- G[which(fit==testfit)[1], ]
+    }
+    
+    if(verbose) print(bestfit)
+    
+    T <- T+1
+    
+  }
+  
+  return(list(sol=bestsol, fit=bestfit))
+}
+
+#2-point crossover version I (Murata)
+crossover2pointI <- function(sol1, sol2){
+  
+  n <- length(sol1)
+  son <- numeric(n)
+  points <- sort(sample(1:n,2))
+  
+  if(points[2]==points[1]+1) return(sol1)
+  
+  son[1:points[1]] <- sol1[1:points[1]]
+  son[points[2]:n] <- sol1[points[2]:n]
+  son[(points[1]+1):(points[2]-1)] <- sol2[-which(sol2 %in% sol1[1:points[1]] | sol2 %in% sol1[points[2]:n])]
+  
+  return(son)
+}
+
+#swap mutation operator
+mutationTSP2nodes <- function(sol){
+  
+  n <- length(sol)
+  points <- sort(sample(1:n, 2))
+  i <- points[1]
+  j <- points[2]
+  
+  swap <- sol
+  swap[i] <- sol[j]
+  swap[j] <- sol[i]
+  
+  if(i==1 & j!=1){
+    swap <- swap[c(j:n, 1:(j-1))]
+  }
+  
+  return(swap)
+}
+
+#order crossover (OX)
+crossoverOX <- function(sol1, sol2){
+  
+  n <- length(sol1)
+  sol <- numeric(n)
+  
+  cut <- sample(1:(n-1), 1)
+  
+  sol[1:cut] <- sol1[1:cut]
+  sol[(cut+1):n] <- sol2[-which(sol2  %in% sol1[1:cut])]
+  
+  return(sol)
+}
+
 
 #----plotting a solution of TSP----
 
@@ -511,3 +646,5 @@ getOptTour <- function(file){
   
   return(tour)
 }
+
+

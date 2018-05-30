@@ -43,7 +43,21 @@ crossover2pointI <- function(sol1, sol2){
   return(son)
 }
 
-#shift operator (Murata)
+#order crossover (OX)
+crossoverOX <- function(sol1, sol2){
+  
+  n <- length(sol1)
+  sol <- numeric(n)
+  
+  cut <- sample(1:(n-1), 1)
+  
+  sol[1:cut] <- sol1[1:cut]
+  sol[(cut+1):n] <- sol2[-which(sol2  %in% sol1[1:cut])]
+  
+  return(sol)
+}
+
+#shift mutation operator (Murata)
 shift <- function(sol){
   
   n <- length(sol)
@@ -63,7 +77,8 @@ shift <- function(sol){
   return(sol)
 }
 
-GAFS <- function(problem, npop=10, iter=100, pmut=0.8, elitist=TRUE, alpha=0, verbose=FALSE){
+#genetic algorithm
+GAFS <- function(problem, npop=10, iter=10, pmut=0.8, crOX=FALSE, elitist=TRUE, alpha=0, verbose=FALSE){
   
   m <- dim(problem)[1]
   n <- dim(problem)[2]
@@ -101,7 +116,10 @@ GAFS <- function(problem, npop=10, iter=100, pmut=0.8, elitist=TRUE, alpha=0, ve
       
       select <- sample(1:npop, 2, prob=probs)
       
-      S[i, ] <- crossover2pointI(G[select[1], ], G[select[2], ])
+      if(crOX)
+        S[i, ] <- crossoverOX(G[select[1], ], G[select[2], ])
+      else
+        S[i, ] <- crossover2pointI(G[select[1], ], G[select[2], ])
       
       if(pmut > runif(1)) S[i, ] <- shift(S[i, ])
       
@@ -114,6 +132,10 @@ GAFS <- function(problem, npop=10, iter=100, pmut=0.8, elitist=TRUE, alpha=0, ve
     #compute makespan of G
     fit <- apply(G, 1, function(x) makespan(problem, x))
     testfit <- min(fit)
+    
+    #reset counter if better solution found
+    if(testfit < bestfit)
+      T <- 0
     
     #update best solution
     if(testfit <= bestfit){

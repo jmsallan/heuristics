@@ -45,10 +45,10 @@ GA01 <- GAFS(Instance, npop=10, iter=1000, pmut=1, verbose = TRUE)
 
 load("instances/TaillardFS.RData")
 
-GA02 <- GAFS(tai20.5[[1]]$tij, npop=10, iter=1000, pmut=0, alpha=0.1, verbose = TRUE)
+GA02 <- GAFS(tai20.5[[1]]$tij, npop=10, iter=100, pmut=0, alpha=0.1, verbose = TRUE)
 
-GA03 <- GAFS(tai20.5[[1]]$tij, npop=10, iter=1000, pmut=1, verbose = TRUE)
-
+GA03 <- GAFS(tai20.5[[1]]$tij, npop=10, iter=10, pmut=1, verbose = TRUE)
+GA03 <- GAFS(tai20.5[[1]]$tij, npop=10, iter=10, pmut=1, crOX=TRUE, verbose = TRUE)
 
 #----NEH heuristic----
 
