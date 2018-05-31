@@ -58,6 +58,10 @@ plotTSP(att48$coordinates, NNatt48$sol)
 plotTSP(att48$coordinates, ILS01att48$sol)
 dev.off()
 
+#GAs
+set.seed(1111)
+GA01att48 <- GATSP(Datt48, npop=100, iter=200, pmut=1, alpha=0)
+GA02att48 <- GATSP(Datt48, npop=100, iter=200, memetic=TRUE, alpha=0.1)
 
 #----a280. optimum 2579----
 
@@ -96,6 +100,11 @@ plotTSP(a280$coordinates, ILS01a280$sol)
 plotTSP(a280$coordinates, opta280)
 dev.off()
 
+#GAs
+set.seed(1111)
+GA01a280 <- GATSP(Da280, npop=100, iter=200, pmut=1, alpha=0)
+GA02a280 <- GATSP(Da280, npop=100, iter=200, memetic=TRUE, alpha=0.1)
+
 #-----qatar: optimal 9352 ----
 
 qa <- importFromTSPlibFormat("instances/qa194.tsp")
@@ -117,10 +126,14 @@ SA01qa <- SATSP2opt(Dqa, NNqa$sol, Tmax=310000, mu=1, eval = FALSE)
 #ILS
 set.seed(1313)
 ILS01qa <- ILSTSTSP2opt(Dqa, NNqa$sol, rounds=30, iter=40)
-ILS02qa <- ILSTSTSP2opt(Dqa, 1:280, rounds=30, iter=40)
+ILS02qa <- ILSTSTSP2opt(Dqa, 1:194, rounds=30, iter=40)
 
 set.seed(1111)
 GRASP01qa <- GRASP2opt(Dqa, rcl.size = 2, tries=30, iter=40)
+
+set.seed(1111)
+GA01qa <- GATSP(Dqa, npop=100, iter=200, pmut=1, alpha=0)
+GA02qa <- GATSP(Dqa, npop=100, iter=200, memetic=TRUE, alpha=0.1)
 
 
 save.image("results/TSPcities.Rdata")

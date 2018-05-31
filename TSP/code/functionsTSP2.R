@@ -493,7 +493,7 @@ GATSP <- function(Instance, npop=10, iter=100, crOX=TRUE, pmut=0.8, memetic=FALS
   #initializing generation G and sons S
   G <- matrix(numeric(n*npop), npop, n)
   S <- matrix(numeric(n*npop), npop, n)
-  for(i in 1:npop) G[i, ] <- sample(1:n, n)
+  for(i in 1:npop) G[i, ] <- c(1, sample(2:n, n-1))
   
   #compute objective function of G
   fit <- apply(G, 1, function(x) TSP(Instance, x))
@@ -542,6 +542,10 @@ GATSP <- function(Instance, npop=10, iter=100, crOX=TRUE, pmut=0.8, memetic=FALS
     #compute distances of G
     fit <- apply(G, 1, function(x) TSP(Instance, x))
     testfit <- min(fit)
+    
+    #restart counter if solution impoved
+    if(testfit < bestfit)
+      T <- 0
     
     #update best solution
     if(testfit <= bestfit){
