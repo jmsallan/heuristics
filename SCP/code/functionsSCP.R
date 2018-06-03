@@ -1,7 +1,7 @@
+#---- reading SCP instances ----
 
-url <- "http://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/scp42.txt"
-
-
+# set-covering instances from OR-library
+# http://people.brunel.ac.uk/~mastjjb/jeb/orlib/scpinfo.html
 
 # The format of all of these 80 data files is:
 # number of rows (m), number of columns (n)
@@ -51,14 +51,27 @@ readCSP <- function(url){
 return(list(M=M, costs=costs))
 }
 
-url <- "http://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/scp42.txt"
+#---- solving LP with linear programming ----
 
-paste0("http://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/", "scp42", ".txt")
+solveLP_SCP <- function(instance){
+  
+  obj <- instance$costs
+  mat <- instance$M
+  
+  m <- dim(mat)[1]
+  n <- length(obj)
+  
+  dir <- rep(">=", m)
+  rhs <- rep(1, m)
+  types <- rep("B", n)
+  
+  solution <- Rglpk_solve_LP(obj=obj, mat=mat, dir=dir, rhs=rhs, types=types, max=FALSE)
+  
+  optcost <- solution$optimum
+  
+  optsolution <- which(solution$solution==1)
+  
+  return(list(optcost=optcost, optsolution=optsolution))
+  
+}
 
-urls <- lapply(c("scp41", "scp42", "scp43", "scp44", "scp45", "scp46", "scp47", "scp48", "scp49", "scp410"), function(x)  paste0("http://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/", x, ".txt"))
-
-allelements <- lapply(urls, readCSP)
-
-save.image("SCPinstances.RData")
-
-matricesRDS <- saveRDS(allelements, "SCPinstances.RDS")
