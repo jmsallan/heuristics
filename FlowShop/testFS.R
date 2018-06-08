@@ -67,7 +67,7 @@ matrices.tai205 <- lapply(tai20.5, function(x) x$tij)
 NEH.tai205 <- lapply(matrices.tai205, NEH)
 NEHfit.tai205 <- sapply(NEH.tai205, function(x)x$fit)
 
-#--- tabu search ----
+#---- tabu search ----
 
 TS01 <- TSFS(Instance, 1:20, eval = TRUE)
 TS02 <- TSFS(tai20.5[[1]]$tij, 1:20, eval = TRUE)
@@ -76,3 +76,7 @@ TS03 <- TSFS(tai20.5[[1]]$tij, NEH02$sol, eval = TRUE)
 TS04 <- TSFS2(Instance, 1:20, eval = TRUE)
 TS05 <- TSFS(tai20.5[[1]]$tij, 1:20, eval = TRUE)
 TS06 <- TSFS(tai20.5[[1]]$tij, NEH02$sol, eval = TRUE)
+
+#---- simulated annealing ----
+
+SA01 <- SAFS(Instance, 1:20, Tmax=10000)

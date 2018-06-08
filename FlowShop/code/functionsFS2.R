@@ -241,7 +241,7 @@ shift4move <- function(sol, i, j){
   return(sol)
 }
 
-
+#TS using the insertion operator
 TSFS <- function(Instance, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE){
   
   #tracking evaluation
@@ -343,6 +343,7 @@ swap4move <- function(sol, i, j){
   
 }
 
+#TS using the swap operator
 TSFS2 <- function(Instance, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE){
   
   #tracking evaluation
@@ -429,6 +430,77 @@ TSFS2 <- function(Instance, inisol, iter=100, tabu.size=5, eval=FALSE, asp=TRUE)
   
   if(eval)
     return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest))
+  else
+    return(list(sol=bestsol, fit=bestfit))
+}
+
+#---- simulated annealing for the TSP based on 2opt----
+
+SAFS <- function(Instance, inisol, Tmax=1000, mu=1, eval=FALSE){
+  
+  #tracking evaluation
+  if(eval){
+    evalfit <- numeric(Tmax)
+    evalbest <- numeric(Tmax)
+    evaltest <- numeric(Tmax)
+  }
+  
+  #initialization
+  sol <- inisol
+  bestsol <- inisol
+  fit <- makespan(Instance, sol)
+  bestfit <- fit
+  T <- Tmax
+  n <- length(inisol)
+  num.moves <- n*(n-3)/2
+  
+  #generating list of moves
+  
+  moves <- matrix(numeric(2*(n-1)^2), (n-1)^2, 2)
+  k <- 1
+  for(i in 1:n)
+    for(j in 1:n)
+      if(i!=j & (i+1)!=j){
+        moves[k, ] <- c(i,j)
+        k <- k+1
+      } 
+  
+  while (T > 0) {
+    
+    test <- sample(1:num.moves, 1)
+    i <- moves[test, 1]
+    j <- moves[test, 2]
+    
+    testsol <- shift4move(sol, i, j)
+    testfit <- makespan(Instance, testsol)
+    
+    if(testfit <= fit){
+      
+      sol <- testsol
+      fit <- testfit
+      
+      if(testfit <= bestfit){
+        bestsol <- sol
+        bestfit <- testfit
+      } 
+      
+    }else{
+      if(exp(-mu*(testfit-fit)) > runif(1)){
+        sol <- testsol
+        fit <- testfit
+      }
+    }
+    
+    if(eval){
+      evalfit[Tmax - T + 1] <- fit
+      evalbest[Tmax - T + 1] <- bestfit
+      evaltest[Tmax - T + 1] <- testfit
+    }
+    
+    T <- T - 1
+  }
+  if(eval)
+    return(list(sol=bestsol, fit=bestfit, evalfit=evalfit, evalbest=evalbest, evaltest=evaltest))
   else
     return(list(sol=bestsol, fit=bestfit))
 }

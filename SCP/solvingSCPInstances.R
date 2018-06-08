@@ -22,7 +22,13 @@ urls61_65 <- lapply(c("scp61", "scp62", "scp63", "scp64", "scp65"), function(x) 
 
 Instances61_65 <- lapply(urls61_65, readCSP)
 
+
+Instances61_65b <- lapply(Instances61_65, function(x) list(M= x$M, costs = rep(1, 1000)))
+
 SolutionInstances61_65 <- lapply(Instances61_65, solveLP_SCP)
+
+SolutionInstances61_65b <- lapply(Instances61_65b, solveLP_SCP)
+
 
 urlsa1_a5 <- lapply(c("scpa1", "scpa2", "scpa3", "scpa4", "scpa5"), function(x)  paste0("http://people.brunel.ac.uk/~mastjjb/jeb/orlib/files/", x, ".txt"))
 
