@@ -650,4 +650,85 @@ getOptTour <- function(file){
   return(tour)
 }
 
+#---- solving TSP with LP using the MZT formulation ----
 
+MZT <- function(D, verbose=FALSE){
+  
+  n <- dim(D)[1]
+  
+  xIndex <- rep(1:n, each=n-1)
+  aux <- 1:n
+  yIndex <- unlist(lapply(1:n, function (x) aux[which(aux!=x)]))
+  xIndex <- c(xIndex, rep(0, n-1))
+  yIndex <- c(yIndex, rep(0, n-1))
+  uIndex <- c(rep(0,n*(n-1)), 2:n)
+  
+  ncols <- n*(n-1) + (n-1)
+  uNrows <- (n-1)*(n-2)
+  nrows <- 2*n + uNrows
+  
+  A <- matrix(numeric(ncols*nrows), nrows, ncols)
+  
+  for(i in 1:n){
+    A[i, which(xIndex==i)] <- 1
+    A[n+i, which(yIndex==i)] <- 1
+  }
+  
+  uRows <- matrix(numeric(2*uNrows), uNrows, 2)
+  
+  k <- 1
+  for(i in 2:n){
+    for(j in 2:n){
+      if(i!=j){
+        uRows[k,1] <- i
+        uRows[k,2] <- j
+        k <- k+1
+      }
+    }
+  }
+  
+  for(i in 1:uNrows){
+    A[2*n+i, which(uIndex==uRows[i,1])] <- 1
+    A[2*n+i, which(uIndex==uRows[i,2])] <- -1
+    A[2*n+i, which(xIndex==uRows[i,1] & yIndex==uRows[i,2])] <- n
+  }
+  
+  #rhs terms
+  rhs <- c(rep(1, 2*n), rep(n-1, uNrows))
+  
+  #dir terms
+  dir <- c(rep("==", 2*n), rep("<=", uNrows))
+  
+  #costs (distances)
+  c <- numeric(ncols)
+  
+  for(i in 1:(n*(n-1)))
+    c[i] <- D[xIndex[i], yIndex[i]]
+  
+  #variable types
+  
+  vars <- c(rep("B", n*(n-1)), rep("C", (n-1)))
+  
+  library(Rglpk)
+  solLP <- Rglpk_solve_LP(obj=c, mat=A, dir=dir, rhs=rhs, types=vars, max=FALSE, verbose=verbose)
+  
+  # print(solLP$solution)
+  
+  xSol <- xIndex[which(solLP$solution[1:(n*(n-1))]==1)]
+  ySol <- yIndex[which(solLP$solution[1:(n*(n-1))]==1)]
+  
+  sol <- matrix(c(xSol, ySol), n, 2)
+  
+  route <- numeric(n)
+  
+  route[1] <- 1
+  k <- 1
+  for(i in 2:n){
+    s <- ySol[which(xSol==k)]
+    route[i] <- s
+    k <- s
+  }
+  
+  return(list(sol=route, fit=solLP$optimum))
+  
+}
