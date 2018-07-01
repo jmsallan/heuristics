@@ -84,7 +84,7 @@ SAKP <- function(Inst, inisol, Tmax=1000, mu=1, eval=FALSE){
       } 
       
     }else{
-      if(exp(-mu*(fit-testfit)) > runif(1)){
+      if(exp(-mu*(fit-testfit)/T) > runif(1)){
         sol <- testsol
         fit <- testfit
       }

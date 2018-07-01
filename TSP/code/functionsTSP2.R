@@ -312,7 +312,7 @@ SATSP2opt <- function(D, inisol, Tmax=1000, mu=1, eval=FALSE){
       } 
       
     }else{
-      if(exp(-mu*(testfit-fit)) > runif(1)){
+      if(exp(-mu*(testfit-fit)/T) > runif(1)){
         sol <- move2opt(sol, i, k)
         fit <- testfit
       }

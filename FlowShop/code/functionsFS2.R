@@ -452,7 +452,7 @@ SAFS <- function(Instance, inisol, Tmax=1000, mu=1, eval=FALSE){
   bestfit <- fit
   T <- Tmax
   n <- length(inisol)
-  num.moves <- n*(n-3)/2
+  num.moves <- (n-1)^2
   
   #generating list of moves
   
@@ -485,7 +485,7 @@ SAFS <- function(Instance, inisol, Tmax=1000, mu=1, eval=FALSE){
       } 
       
     }else{
-      if(exp(-mu*(testfit-fit)) > runif(1)){
+      if(exp(-mu*(testfit-fit)/T) > runif(1)){
         sol <- testsol
         fit <- testfit
       }

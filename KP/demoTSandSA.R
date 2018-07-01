@@ -33,7 +33,7 @@ lines(1:100, SA01$evaltest[1:100], col="green")
 #simulated annealing with same evals of objective function as TS
 
 Tmax <- 500000
-SA02 <- SAKP(Inst=LargeInstance, Tmax=500000, mu=1, inisol = inisolLIEmpty, eval=FALSE)
+SA02 <- SAKP(Inst=LargeInstance, Tmax=500000, mu=1000, inisol = inisolLIEmpty, eval=FALSE)
 
 
 #tabu search behaviour

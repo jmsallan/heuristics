@@ -44,15 +44,15 @@ solnn <- NearestNeighbour(Instance10)
 TestSample <- SampleTSP(30, seed=1313)
 
 sol <- 1:30
-sol2 <- NearestNeighbour(TestSample)
-TSP(TestSample, sol)
+sol2 <- NearestNeighbour(TestSample$distances)
+TSP(TestSample$distances, sol)
 
-HC01 <- HillClimbing2opt(TestSample, sol)
-HC02 <- HillClimbing2opt(TestSample, sol2$sol)
+HC01 <- HillClimbing2opt(TestSample$distances, sol)
+HC02 <- HillClimbing2opt(TestSample$distances, sol2$sol)
 
 #----testing tabu search----
 
-TS01 <- TSTSP2opt(TestSample, sol, asp=TRUE, eval=TRUE)
+TS01 <- TSTSP2opt(TestSample$distances, sol, asp=TRUE, eval=TRUE)
 
 pdf("tabu.pdf", height=5, width = 10)
 par(mfrow=c(1,2))
@@ -66,7 +66,7 @@ plot(1:100, TS01$evalgain, type = "l", col = "blue", lwd=2, xlab="", ylab="")
 
 #----search without tabu list----
 
-Silly01 <- SillyTSP2opt(TestSample, sol)
+Silly01 <- SillyTSP2opt(TestSample$distances, sol)
 
 pdf("silly.pdf", height=5, width = 10)
 par(mfrow=c(1,2))
@@ -81,7 +81,7 @@ plot(1:100, Silly01$evalgain, type = "l", col = "blue", lwd=2, xlab="", ylab="",
 #----testing simulated annealing----
 
 set.seed(1313)
-SA01 <- SATSP2opt(TestSample, sol, Tmax=3000, mu=10, eval = TRUE)
+SA01 <- SATSP2opt(TestSample$distances, sol, Tmax=300000, mu=100, eval = TRUE)
 
 pdf("SAevol.pdf", height=5, width = 10)
 par(mfrow=c(1,2))
@@ -95,18 +95,18 @@ lines(2500:3000, SA01$evalfit[2500:3000], col ="red")
 dev.off()
 
 set.seed(1313)
-SA02 <- SATSP2opt(TestSample, sol, Tmax=40500, mu=10, eval = FALSE)
+SA02 <- SATSP2opt(TestSample$distances, sol, Tmax=40500, mu=10, eval = FALSE)
 
 
 #----testing GRASP----
 
-for(i in 1:10) print(GRASP(TestSample, 2))
+for(i in 1:10) print(GRASP(TestSample$distances, 2))
 
 set.seed(1111)
-GRASP01 <- GRASP2opt(TestSample, rcl.size = 2, tries = 10)
+GRASP01 <- GRASP2opt(TestSample$distances, rcl.size = 2, tries = 10)
 
 set.seed(1111)
-GRASP02 <- GRASP2opt(TestSample, rcl.size = 2, ls="SA", tries = 10)
+GRASP02 <- GRASP2opt(TestSample$distances, rcl.size = 2, ls="SA", tries = 10)
 
 GRASP01$report
 GRASP02$report
@@ -114,12 +114,12 @@ GRASP02$report
 #---- testing ILS ----
 
 sol <- 1:30
-ILS01 <- ILSTSTSP2opt(TestSample, sol)
+ILS01 <- ILSTSTSP2opt(TestSample$distances, sol)
 
 #---- testing GA ----
 
-GA01.TestSample <- GATSP(TestSample, npop=100, iter = 500, pmut = 1)
-GA02.TestSample <- GATSP(TestSample, npop=100, crOX=FALSE, iter = 500, pmut = 1)
-GA03.TestSample <- GATSP(TestSample, npop=100, crOX=FALSE, iter = 100, pmut = 1, memetic = TRUE, verbose=TRUE, alpha=0.1)
+GA01.TestSample <- GATSP(TestSample$distances, npop=100, iter = 500, pmut = 1)
+GA02.TestSample <- GATSP(TestSample$distances, npop=100, crOX=FALSE, iter = 500, pmut = 1)
+GA03.TestSample <- GATSP(TestSample$distances, npop=100, crOX=FALSE, iter = 100, pmut = 1, memetic = TRUE, verbose=TRUE, alpha=0.1)
 
 
